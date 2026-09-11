@@ -2,7 +2,7 @@
 
 
 
-Projeto desenvolvido para estudar e aplicar conceitos de \*\*Cloud Computing, monitoramento, redes e segurança da informação\*\* utilizando Python.
+Projeto desenvolvido para estudar e aplicar conceitos de *Cloud Computing, monitoramento, redes e segurança da informação* utilizando Python.
 
 
 
