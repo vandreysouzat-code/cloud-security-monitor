@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <title>Cloud Security Monitor</title>
+
+</head>
+
+<body>
+
+    <h1>☁️ Cloud Security Monitor</h1>
+
+    <hr>
+
+    <h2>Status do sistema</h2>
+
+    <p>
+        Status:
+        <strong id="status">CARREGANDO...</strong>
+    </p>
+
+    <p>
+        URL:
+        <span id="url">CARREGANDO...</span>
+    </p>
+
+    <p>
+        Código HTTP:
+        <span id="codigo">CARREGANDO...</span>
+    </p>
+
+    <p>
+        Tempo de resposta:
+        <span id="tempo">CARREGANDO...</span>
+        ms
+    </p>
+
+    <hr>
+
+    <h2>Métricas</h2>
+
+    <p>
+        Checks:
+        <span id="checks">CARREGANDO...</span>
+    </p>
+
+    <p>
+        Falhas:
+        <span id="falhas">CARREGANDO...</span>
+    </p>
+
+    <p>
+        Uptime:
+        <span id="uptime">CARREGANDO...</span>%
+    </p>
+
+    <p>
+        Tempo médio:
+        <span id="media">CARREGANDO...</span>
+        ms
+    </p>
+
+    <p>
+        Maior tempo:
+        <span id="maior">CARREGANDO...</span>
+        ms
+    </p>
+
+
+    <script>
+
+        async function atualizarDashboard() {
+
+            const statusResponse =
+                await fetch("/status");
+
+            const status =
+                await statusResponse.json();
+
+
+            const metricsResponse =
+                await fetch("/metrics");
+
+            const metrics =
+                await metricsResponse.json();
+
+
+            document.getElementById("status").textContent =
+                status.status;
+
+            document.getElementById("url").textContent =
+                status.url;
+
+            document.getElementById("codigo").textContent =
+                status.codigo_http;
+
+            document.getElementById("tempo").textContent =
+                status.tempo_resposta_ms.toFixed(2);
+
+
+            document.getElementById("checks").textContent =
+                metrics.checks;
+
+            document.getElementById("falhas").textContent =
+                metrics.falhas;
+
+            document.getElementById("uptime").textContent =
+                metrics.uptime.toFixed(2);
+
+            document.getElementById("media").textContent =
+                metrics.tempo_medio_ms.toFixed(2);
+
+            document.getElementById("maior").textContent =
+                metrics.maior_tempo_ms.toFixed(2);
+
+        }
+
+
+        atualizarDashboard();
+
+
+        setInterval(
+            atualizarDashboard,
+            10000
+        );
+
+    </script>
+
+</body>
+
+</html>
