@@ -1,0 +1,10 @@
+services:
+  monitor:
+    build: .
+    container_name: cloud-security-monitor
+    ports:
+      - "5000:5000"
+    dns:
+      - 1.1.1.1
+    dns_opt:
+      - use-vc
