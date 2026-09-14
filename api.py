@@ -29,30 +29,35 @@ from database import (
 )
 
 
-# =========================================================
-# CONFIGURAÇÃO
-# =========================================================
-
 load_dotenv()
+
 
 app = Flask(__name__)
 
 app.secret_key = os.environ.get("SECRET_KEY")
 
+
 criar_banco()
 
-
-# =========================================================
-# AUTENTICAÇÃO
-# =========================================================
 
 def usuario_logado():
     return session.get("usuario_id")
 
 
-# =========================================================
+# ==========================================
+# HEALTH CHECK
+# ==========================================
+
+@app.route("/health")
+def health():
+    return jsonify({
+        "status": "healthy"
+    }), 200
+
+
+# ==========================================
 # HOME
-# =========================================================
+# ==========================================
 
 @app.route("/")
 def home():
@@ -63,9 +68,9 @@ def home():
     return redirect("/login")
 
 
-# =========================================================
+# ==========================================
 # LOGIN
-# =========================================================
+# ==========================================
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -102,9 +107,6 @@ def login():
             erro="E-mail ou senha incorretos."
         )
 
-    # Guarda as informações do usuário
-    # na sessão.
-
     session["usuario_id"] = usuario["id"]
 
     session["usuario_nome"] = usuario["nome"]
@@ -114,9 +116,9 @@ def login():
     return redirect("/dashboard")
 
 
-# =========================================================
+# ==========================================
 # LOGOUT
-# =========================================================
+# ==========================================
 
 @app.route("/logout")
 def logout():
@@ -126,9 +128,9 @@ def logout():
     return redirect("/login")
 
 
-# =========================================================
-# REGISTRO
-# =========================================================
+# ==========================================
+# CADASTRO
+# ==========================================
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -154,16 +156,12 @@ def register():
         ""
     )
 
-    # Verifica campos vazios
-
     if not nome or not email or not senha:
 
         return render_template(
             "register.html",
             erro="Preencha todos os campos."
         )
-
-    # Verifica tamanho da senha
 
     if len(senha) < 6:
 
@@ -172,16 +170,12 @@ def register():
             erro="A senha precisa ter pelo menos 6 caracteres."
         )
 
-    # Verifica se e-mail já existe
-
     if email_existe(email):
 
         return render_template(
             "register.html",
             erro="Este e-mail já está cadastrado."
         )
-
-    # Cria usuário
 
     criar_usuario(
         nome,
@@ -192,16 +186,14 @@ def register():
     return redirect("/login")
 
 
-# =========================================================
+# ==========================================
 # STATUS DO SITE
-# =========================================================
+# ==========================================
 
 @app.route("/status")
 def status():
 
     usuario_id = usuario_logado()
-
-    # Usuário precisa estar autenticado
 
     if not usuario_id:
 
@@ -214,11 +206,6 @@ def status():
         default=1,
         type=int
     )
-
-    # 🔐 SEGURANÇA
-    #
-    # Verifica se o site pertence
-    # ao usuário atualmente logado.
 
     site = buscar_site(
         site_id,
@@ -231,14 +218,10 @@ def status():
             "erro": "Site não encontrado"
         }), 404
 
-    # Faz o monitoramento
-
     resultado = verificar_url(
         site["url"],
         config.TIMEOUT
     )
-
-    # Salva resultado no banco
 
     salvar_monitoramento(
         resultado["status"],
@@ -249,40 +232,31 @@ def status():
 
     return jsonify({
 
-        "projeto":
-            "Cloud Security Monitor",
+        "projeto": "Cloud Security Monitor",
 
-        "site_id":
-            site["id"],
+        "site_id": site["id"],
 
-        "nome":
-            site["nome"],
+        "nome": site["nome"],
 
-        "url":
-            site["url"],
+        "url": site["url"],
 
-        "status":
-            resultado["status"],
+        "status": resultado["status"],
 
-        "codigo_http":
-            resultado["codigo_http"],
+        "codigo_http": resultado["codigo_http"],
 
-        "tempo_resposta_ms":
-            resultado["tempo_resposta"]
+        "tempo_resposta_ms": resultado["tempo_resposta"]
 
     })
 
 
-# =========================================================
+# ==========================================
 # MÉTRICAS
-# =========================================================
+# ==========================================
 
 @app.route("/metrics")
 def metrics():
 
     usuario_id = usuario_logado()
-
-    # Usuário precisa estar autenticado
 
     if not usuario_id:
 
@@ -295,11 +269,6 @@ def metrics():
         default=1,
         type=int
     )
-
-    # 🔐 SEGURANÇA
-    #
-    # Verifica se o site pertence
-    # ao usuário.
 
     site = buscar_site(
         site_id,
@@ -316,19 +285,19 @@ def metrics():
         site_id
     )
 
-    return jsonify(resultado)
+    return jsonify(
+        resultado
+    )
 
 
-# =========================================================
+# ==========================================
 # HISTÓRICO
-# =========================================================
+# ==========================================
 
 @app.route("/history")
 def history():
 
     usuario_id = usuario_logado()
-
-    # Usuário precisa estar autenticado
 
     if not usuario_id:
 
@@ -341,11 +310,6 @@ def history():
         default=1,
         type=int
     )
-
-    # 🔐 SEGURANÇA
-    #
-    # Verifica se o site pertence
-    # ao usuário.
 
     site = buscar_site(
         site_id,
@@ -363,19 +327,19 @@ def history():
         site_id=site_id
     )
 
-    return jsonify(historico)
+    return jsonify(
+        historico
+    )
 
 
-# =========================================================
+# ==========================================
 # LISTAR SITES
-# =========================================================
+# ==========================================
 
 @app.route("/sites")
 def sites():
 
     usuario_id = usuario_logado()
-
-    # Usuário precisa estar autenticado
 
     if not usuario_id:
 
@@ -383,28 +347,23 @@ def sites():
             "erro": "Não autenticado"
         }), 401
 
-    # 🔐 SEGURANÇA
-    #
-    # Retorna somente os sites
-    # pertencentes ao usuário logado.
-
     resultado = listar_sites(
         usuario_id
     )
 
-    return jsonify(resultado)
+    return jsonify(
+        resultado
+    )
 
 
-# =========================================================
+# ==========================================
 # ADICIONAR SITE
-# =========================================================
+# ==========================================
 
 @app.route("/sites", methods=["POST"])
 def criar_site():
 
     usuario_id = usuario_logado()
-
-    # Usuário precisa estar autenticado
 
     if not usuario_id:
 
@@ -420,20 +379,19 @@ def criar_site():
             "erro": "JSON não enviado"
         }), 400
 
-    nome = dados.get("nome")
+    nome = dados.get(
+        "nome"
+    )
 
-    url = dados.get("url")
+    url = dados.get(
+        "url"
+    )
 
     if not nome or not url:
 
         return jsonify({
             "erro": "Nome e URL são obrigatórios"
         }), 400
-
-    # 🔐 SEGURANÇA
-    #
-    # O site é vinculado ao usuário
-    # que está atualmente logado.
 
     site_id = adicionar_site(
         nome,
@@ -443,31 +401,29 @@ def criar_site():
 
     return jsonify({
 
-        "mensagem":
-            "Site adicionado com sucesso",
+        "mensagem": "Site adicionado com sucesso",
 
-        "site_id":
-            site_id,
+        "site_id": site_id,
 
-        "nome":
-            nome,
+        "nome": nome,
 
-        "url":
-            url
+        "url": url
 
     }), 201
 
 
-# =========================================================
+# ==========================================
 # DASHBOARD
-# =========================================================
+# ==========================================
 
 @app.route("/dashboard")
 def dashboard():
 
     if not usuario_logado():
 
-        return redirect("/login")
+        return redirect(
+            "/login"
+        )
 
     return render_template(
         "dashboard.html"
