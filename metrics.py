@@ -1,29 +1,78 @@
-total_checks = 0
-total_falhas = 0
-tempos_resposta = []
+import sqlite3
+
+from database import DATABASE
 
 
-def registrar_check(falhou, tempo_resposta):
+def obter_metricas(site_id=1):
 
-    global total_checks
-    global total_falhas
+    conexao = sqlite3.connect(
+        DATABASE
+    )
 
-    total_checks += 1
-
-    if falhou:
-        total_falhas += 1
-
-    if tempo_resposta is not None:
-        tempos_resposta.append(tempo_resposta)
+    cursor = conexao.cursor()
 
 
-def obter_metricas():
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM monitoramentos
+        WHERE site_id = ?
+    """, (
+        site_id,
+    ))
 
-    if total_checks > 0:
+
+    checks = cursor.fetchone()[0]
+
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM monitoramentos
+        WHERE site_id = ?
+        AND status != 'ONLINE'
+    """, (
+        site_id,
+    ))
+
+
+    falhas = cursor.fetchone()[0]
+
+
+    cursor.execute("""
+        SELECT
+            AVG(tempo_resposta),
+            MAX(tempo_resposta)
+        FROM monitoramentos
+        WHERE site_id = ?
+        AND tempo_resposta IS NOT NULL
+    """, (
+        site_id,
+    ))
+
+
+    resultado = cursor.fetchone()
+
+
+    tempo_medio = resultado[0]
+
+    maior_tempo = resultado[1]
+
+
+    conexao.close()
+
+
+    if tempo_medio is None:
+        tempo_medio = 0
+
+
+    if maior_tempo is None:
+        maior_tempo = 0
+
+
+    if checks > 0:
 
         uptime = (
-            (total_checks - total_falhas)
-            / total_checks
+            (checks - falhas)
+            / checks
         ) * 100
 
     else:
@@ -31,25 +80,21 @@ def obter_metricas():
         uptime = 0
 
 
-    if tempos_resposta:
-
-        tempo_medio = (
-            sum(tempos_resposta)
-            / len(tempos_resposta)
-        )
-
-        maior_tempo = max(tempos_resposta)
-
-    else:
-
-        tempo_medio = 0
-        maior_tempo = 0
-
-
     return {
-        "checks": total_checks,
-        "falhas": total_falhas,
-        "uptime": uptime,
-        "tempo_medio_ms": tempo_medio,
-        "maior_tempo_ms": maior_tempo
+
+        "checks":
+            checks,
+
+        "falhas":
+            falhas,
+
+        "uptime":
+            uptime,
+
+        "tempo_medio_ms":
+            tempo_medio,
+
+        "maior_tempo_ms":
+            maior_tempo
+
     }

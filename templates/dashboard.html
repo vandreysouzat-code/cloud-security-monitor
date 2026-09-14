@@ -2,132 +2,1868 @@
 <html lang="pt-BR">
 
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Cloud Security Monitor</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f5f7fb;
+            color: #1f2937;
+        }
+
+        /* HEADER */
+
+        .header {
+            background: white;
+            padding: 25px 40px;
+            border-bottom: 1px solid #e5e7eb;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            font-size: 34px;
+        }
+
+        .logo h1 {
+            margin: 0;
+            font-size: 26px;
+        }
+
+        .logo p {
+            margin: 4px 0 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            color: #16a34a;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .live-dot {
+            width: 9px;
+            height: 9px;
+
+            background: #22c55e;
+            border-radius: 50%;
+        }
+
+        /* CONTAINER */
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+
+            padding: 30px 40px;
+        }
+
+        /* SITE SELECTOR */
+
+        .site-selector {
+            background: white;
+
+            border-radius: 16px;
+
+            padding: 25px;
+
+            margin-bottom: 25px;
+
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .site-selector label {
+            display: block;
+
+            margin-bottom: 10px;
+
+            color: #6b7280;
+
+            font-size: 14px;
+
+            font-weight: bold;
+        }
+
+        .selector-row {
+            display: flex;
+
+            gap: 12px;
+
+            align-items: center;
+        }
+
+        .site-selector select {
+
+            flex: 1;
+
+            padding: 14px 16px;
+
+            border: 1px solid #d1d5db;
+
+            border-radius: 10px;
+
+            background: white;
+
+            font-size: 16px;
+
+            cursor: pointer;
+        }
+
+        .add-button {
+
+            border: none;
+
+            background: #2563eb;
+
+            color: white;
+
+            padding: 14px 20px;
+
+            border-radius: 10px;
+
+            font-size: 15px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+        }
+
+        .add-button:hover {
+            background: #1d4ed8;
+        }
+
+        /* STATUS */
+
+        .status-card {
+
+            background: white;
+
+            border-radius: 16px;
+
+            padding: 30px;
+
+            margin-bottom: 25px;
+
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+        }
+
+        .status-left h2 {
+
+            margin-top: 0;
+
+            margin-bottom: 8px;
+
+            font-size: 30px;
+        }
+
+        .url {
+
+            color: #6b7280;
+
+            font-size: 14px;
+        }
+
+        .status-badge {
+
+            padding: 12px 22px;
+
+            border-radius: 30px;
+
+            font-size: 18px;
+
+            font-weight: bold;
+        }
+
+        .online {
+
+            background: #dcfce7;
+
+            color: #15803d;
+        }
+
+        .offline {
+
+            background: #fee2e2;
+
+            color: #dc2626;
+        }
+
+        /* CARDS */
+
+        .cards {
+
+            display: grid;
+
+            grid-template-columns: repeat(4, 1fr);
+
+            gap: 20px;
+
+            margin-bottom: 25px;
+        }
+
+        .card {
+
+            background: white;
+
+            border-radius: 16px;
+
+            padding: 25px;
+
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .card-title {
+
+            color: #6b7280;
+
+            font-size: 14px;
+
+            margin-bottom: 12px;
+        }
+
+        .card-value {
+
+            font-size: 28px;
+
+            font-weight: bold;
+        }
+
+        .card-subtitle {
+
+            margin-top: 8px;
+
+            color: #9ca3af;
+
+            font-size: 13px;
+        }
+
+        /* GRID */
+
+        .grid {
+
+            display: grid;
+
+            grid-template-columns: 2fr 1fr;
+
+            gap: 25px;
+
+            margin-bottom: 25px;
+        }
+
+        .section {
+
+            background: white;
+
+            border-radius: 16px;
+
+            padding: 25px;
+
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .section h2 {
+
+            margin-top: 0;
+        }
+
+        /* CHART */
+
+        .chart-container {
+
+            height: 280px;
+
+            position: relative;
+        }
+
+        canvas {
+
+            width: 100%;
+
+            height: 100%;
+        }
+
+        /* DETAILS */
+
+        .details p {
+
+            margin: 15px 0;
+        }
+
+        .details strong {
+
+            display: block;
+
+            font-size: 22px;
+
+            margin-top: 5px;
+        }
+
+        /* TABLE */
+
+        .table-container {
+
+            overflow-x: auto;
+        }
+
+        table {
+
+            width: 100%;
+
+            border-collapse: collapse;
+        }
+
+        th {
+
+            text-align: left;
+
+            color: #6b7280;
+
+            font-size: 13px;
+
+            padding: 14px;
+
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        td {
+
+            padding: 16px 14px;
+
+            border-bottom: 1px solid #f0f0f0;
+
+            font-size: 14px;
+        }
+
+        .status-online {
+
+            color: #16a34a;
+
+            font-weight: bold;
+        }
+
+        .status-offline {
+
+            color: #dc2626;
+
+            font-weight: bold;
+        }
+
+        /* FOOTER */
+
+        footer {
+
+            text-align: center;
+
+            padding: 30px;
+
+            color: #9ca3af;
+
+            font-size: 13px;
+        }
+
+        /* MODAL */
+
+        .modal {
+
+            display: none;
+
+            position: fixed;
+
+            inset: 0;
+
+            background: rgba(15, 23, 42, 0.55);
+
+            justify-content: center;
+
+            align-items: center;
+
+            padding: 20px;
+
+            z-index: 999;
+        }
+
+        .modal.active {
+
+            display: flex;
+        }
+
+        .modal-content {
+
+            background: white;
+
+            width: 100%;
+
+            max-width: 500px;
+
+            border-radius: 18px;
+
+            padding: 30px;
+
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            margin-bottom: 25px;
+        }
+
+        .modal-header h2 {
+
+            margin: 0;
+
+            font-size: 24px;
+        }
+
+        .close-button {
+
+            border: none;
+
+            background: transparent;
+
+            font-size: 25px;
+
+            cursor: pointer;
+
+            color: #6b7280;
+        }
+
+        .form-group {
+
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+
+            display: block;
+
+            margin-bottom: 8px;
+
+            font-size: 14px;
+
+            font-weight: bold;
+
+            color: #374151;
+        }
+
+        .form-group input {
+
+            width: 100%;
+
+            padding: 14px;
+
+            border: 1px solid #d1d5db;
+
+            border-radius: 10px;
+
+            font-size: 15px;
+
+            outline: none;
+        }
+
+        .form-group input:focus {
+
+            border-color: #2563eb;
+
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+
+        .modal-actions {
+
+            display: flex;
+
+            gap: 10px;
+
+            justify-content: flex-end;
+
+            margin-top: 25px;
+        }
+
+        .cancel-button {
+
+            border: 1px solid #d1d5db;
+
+            background: white;
+
+            color: #374151;
+
+            padding: 13px 18px;
+
+            border-radius: 10px;
+
+            cursor: pointer;
+
+            font-weight: bold;
+        }
+
+        .save-button {
+
+            border: none;
+
+            background: #2563eb;
+
+            color: white;
+
+            padding: 13px 20px;
+
+            border-radius: 10px;
+
+            cursor: pointer;
+
+            font-weight: bold;
+        }
+
+        .save-button:hover {
+
+            background: #1d4ed8;
+        }
+
+        .message {
+
+            margin-top: 15px;
+
+            font-size: 14px;
+
+            font-weight: bold;
+        }
+
+        /* RESPONSIVE */
+
+        @media (max-width: 900px) {
+
+            .cards {
+
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .grid {
+
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+        @media (max-width: 700px) {
+
+            .header {
+
+                padding: 20px;
+
+                flex-direction: column;
+
+                align-items: flex-start;
+
+                gap: 15px;
+            }
+
+            .container {
+
+                padding: 20px;
+            }
+
+            .selector-row {
+
+                flex-direction: column;
+
+                align-items: stretch;
+            }
+
+            .cards {
+
+                grid-template-columns: 1fr;
+            }
+
+            .status-card {
+
+                flex-direction: column;
+
+                align-items: flex-start;
+
+                gap: 20px;
+            }
+
+        }
+
+    </style>
 
 </head>
 
 <body>
 
-    <h1>☁️ Cloud Security Monitor</h1>
+<header class="header">
 
-    <hr>
+    <div class="logo">
 
-    <h2>Status do sistema</h2>
+        <div class="logo-icon">
+            ☁️
+        </div>
 
-    <p>
-        Status:
-        <strong id="status">CARREGANDO...</strong>
-    </p>
+        <div>
 
-    <p>
-        URL:
-        <span id="url">CARREGANDO...</span>
-    </p>
+            <h1>
+                Cloud Security Monitor
+            </h1>
 
-    <p>
-        Código HTTP:
-        <span id="codigo">CARREGANDO...</span>
-    </p>
+            <p>
+                Monitoramento de disponibilidade e segurança
+            </p>
 
-    <p>
-        Tempo de resposta:
-        <span id="tempo">CARREGANDO...</span>
-        ms
-    </p>
+        </div>
 
-    <hr>
+    </div>
 
-    <h2>Métricas</h2>
+    <div class="live-indicator">
 
-    <p>
-        Checks:
-        <span id="checks">CARREGANDO...</span>
-    </p>
+        <span class="live-dot"></span>
 
-    <p>
-        Falhas:
-        <span id="falhas">CARREGANDO...</span>
-    </p>
+        Sistema ativo
 
-    <p>
-        Uptime:
-        <span id="uptime">CARREGANDO...</span>%
-    </p>
+    </div>
 
-    <p>
-        Tempo médio:
-        <span id="media">CARREGANDO...</span>
-        ms
-    </p>
-
-    <p>
-        Maior tempo:
-        <span id="maior">CARREGANDO...</span>
-        ms
-    </p>
+</header>
 
 
-    <script>
-
-        async function atualizarDashboard() {
-
-            const statusResponse =
-                await fetch("/status");
-
-            const status =
-                await statusResponse.json();
+<main class="container">
 
 
-            const metricsResponse =
-                await fetch("/metrics");
+    <!-- SITE SELECTOR -->
 
-            const metrics =
-                await metricsResponse.json();
+    <section class="site-selector">
+
+        <label for="siteSelect">
+            SITE MONITORADO
+        </label>
+
+        <div class="selector-row">
+
+            <select id="siteSelect">
+
+                <option>
+                    Carregando sites...
+                </option>
+
+            </select>
+
+            <button
+                class="add-button"
+                onclick="abrirModal()"
+            >
+                + Adicionar site
+            </button>
+
+        </div>
+
+    </section>
 
 
-            document.getElementById("status").textContent =
-                status.status;
+    <!-- STATUS -->
 
-            document.getElementById("url").textContent =
-                status.url;
+    <section class="status-card">
 
-            document.getElementById("codigo").textContent =
-                status.codigo_http;
+        <div class="status-left">
 
-            document.getElementById("tempo").textContent =
-                status.tempo_resposta_ms.toFixed(2);
+            <h2 id="siteNome">
+                Carregando...
+            </h2>
+
+            <div class="url">
+
+                Monitorando:
+
+                <span id="url">
+                    Carregando...
+                </span>
+
+            </div>
+
+        </div>
+
+        <div>
+
+            <span
+                id="status"
+                class="status-badge"
+            >
+                CARREGANDO...
+            </span>
+
+        </div>
+
+    </section>
 
 
-            document.getElementById("checks").textContent =
-                metrics.checks;
+    <!-- METRICS -->
 
-            document.getElementById("falhas").textContent =
-                metrics.falhas;
+    <section class="cards">
 
-            document.getElementById("uptime").textContent =
-                metrics.uptime.toFixed(2);
 
-            document.getElementById("media").textContent =
-                metrics.tempo_medio_ms.toFixed(2);
+        <div class="card">
 
-            document.getElementById("maior").textContent =
-                metrics.maior_tempo_ms.toFixed(2);
+            <div class="card-title">
+                CHECKS
+            </div>
+
+            <div
+                id="checks"
+                class="card-value"
+            >
+                --
+            </div>
+
+            <div class="card-subtitle">
+                Verificações realizadas
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                UPTIME
+            </div>
+
+            <div
+                id="uptime"
+                class="card-value"
+            >
+                --
+            </div>
+
+            <div class="card-subtitle">
+                Disponibilidade
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                TEMPO MÉDIO
+            </div>
+
+            <div
+                id="media"
+                class="card-value"
+            >
+                --
+            </div>
+
+            <div class="card-subtitle">
+                Tempo de resposta
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <div class="card-title">
+                FALHAS
+            </div>
+
+            <div
+                id="falhas"
+                class="card-value"
+            >
+                --
+            </div>
+
+            <div class="card-subtitle">
+                Falhas detectadas
+            </div>
+
+        </div>
+
+
+    </section>
+
+
+    <!-- CHART + DETAILS -->
+
+    <section class="grid">
+
+
+        <div class="section">
+
+            <h2>
+                📈 Tempo de resposta
+            </h2>
+
+            <p class="card-subtitle">
+                Últimas verificações
+            </p>
+
+            <div class="chart-container">
+
+                <canvas id="grafico"></canvas>
+
+            </div>
+
+        </div>
+
+
+        <div class="section details">
+
+            <h2>
+                🔎 Detalhes
+            </h2>
+
+            <p>
+
+                Código HTTP
+
+                <strong id="codigo">
+                    --
+                </strong>
+
+            </p>
+
+
+            <p>
+
+                Última resposta
+
+                <strong id="tempo">
+                    --
+                </strong>
+
+            </p>
+
+
+            <p>
+
+                Maior tempo
+
+                <strong id="maior">
+                    --
+                </strong>
+
+            </p>
+
+        </div>
+
+
+    </section>
+
+
+    <!-- HISTORY -->
+
+    <section class="section">
+
+        <h2>
+            📜 Histórico das verificações
+        </h2>
+
+        <p class="card-subtitle">
+            Registros recentes do monitoramento
+        </p>
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            DATA / HORA
+                        </th>
+
+                        <th>
+                            STATUS
+                        </th>
+
+                        <th>
+                            HTTP
+                        </th>
+
+                        <th>
+                            TEMPO DE RESPOSTA
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody id="historico">
+
+                    <tr>
+
+                        <td colspan="4">
+                            Carregando histórico...
+                        </td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+<footer>
+
+    Cloud Security Monitor · Monitoramento de infraestrutura
+
+</footer>
+
+
+<!-- MODAL -->
+
+<div
+    id="modal"
+    class="modal"
+>
+
+    <div class="modal-content">
+
+
+        <div class="modal-header">
+
+            <h2>
+                Adicionar novo site
+            </h2>
+
+            <button
+                class="close-button"
+                onclick="fecharModal()"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="nomeSite">
+                Nome do site
+            </label>
+
+            <input
+                id="nomeSite"
+                type="text"
+                placeholder="Ex: Minha Empresa"
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label for="urlSite">
+                URL
+            </label>
+
+            <input
+                id="urlSite"
+                type="url"
+                placeholder="https://exemplo.com"
+            >
+
+        </div>
+
+
+        <div
+            id="mensagem"
+            class="message"
+        ></div>
+
+
+        <div class="modal-actions">
+
+            <button
+                class="cancel-button"
+                onclick="fecharModal()"
+            >
+                Cancelar
+            </button>
+
+            <button
+                class="save-button"
+                onclick="adicionarSite()"
+            >
+                Adicionar site
+            </button>
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+<script>
+
+
+let siteAtual = 1;
+
+
+/* =========================
+   MODAL
+========================= */
+
+
+function abrirModal() {
+
+    document
+        .getElementById("modal")
+        .classList
+        .add("active");
+
+}
+
+
+function fecharModal() {
+
+    document
+        .getElementById("modal")
+        .classList
+        .remove("active");
+
+    document
+        .getElementById("nomeSite")
+        .value = "";
+
+    document
+        .getElementById("urlSite")
+        .value = "";
+
+    document
+        .getElementById("mensagem")
+        .textContent = "";
+
+}
+
+
+/* =========================
+   ADICIONAR SITE
+========================= */
+
+
+async function adicionarSite() {
+
+
+    const nome =
+        document
+            .getElementById("nomeSite")
+            .value
+            .trim();
+
+
+    let url =
+        document
+            .getElementById("urlSite")
+            .value
+            .trim();
+
+
+    const mensagem =
+        document
+            .getElementById("mensagem");
+
+
+    if (!nome || !url) {
+
+        mensagem.textContent =
+            "Preencha o nome e a URL.";
+
+        mensagem.style.color =
+            "#dc2626";
+
+        return;
+    }
+
+
+    if (
+        !url.startsWith("http://") &&
+        !url.startsWith("https://")
+    ) {
+
+        url = "https://" + url;
+
+    }
+
+
+    try {
+
+
+        const response =
+            await fetch(
+                "/sites",
+                {
+
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        nome: nome,
+                        url: url
+                    })
+
+                }
+            );
+
+
+        const resultado =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            mensagem.textContent =
+                resultado.erro ||
+                "Erro ao adicionar site.";
+
+            mensagem.style.color =
+                "#dc2626";
+
+            return;
+        }
+
+
+        mensagem.textContent =
+            "Site adicionado com sucesso!";
+
+        mensagem.style.color =
+            "#16a34a";
+
+
+        siteAtual =
+            resultado.site_id;
+
+
+        await carregarSites();
+
+
+        document
+            .getElementById("siteSelect")
+            .value = siteAtual;
+
+
+        await atualizarDashboard();
+
+
+        setTimeout(
+            fecharModal,
+            700
+        );
+
+
+    } catch (erro) {
+
+
+        console.error(erro);
+
+
+        mensagem.textContent =
+            "Não foi possível adicionar o site.";
+
+        mensagem.style.color =
+            "#dc2626";
+
+    }
+
+}
+
+
+/* =========================
+   CARREGAR SITES
+========================= */
+
+
+async function carregarSites() {
+
+
+    const response =
+        await fetch("/sites");
+
+
+    const sites =
+        await response.json();
+
+
+    const select =
+        document
+            .getElementById("siteSelect");
+
+
+    select.innerHTML = "";
+
+
+    if (sites.length === 0) {
+
+        const option =
+            document.createElement("option");
+
+        option.textContent =
+            "Nenhum site cadastrado";
+
+        select.appendChild(option);
+
+        return;
+    }
+
+
+    sites.forEach(site => {
+
+
+        const option =
+            document.createElement("option");
+
+
+        option.value =
+            site.id;
+
+
+        option.textContent =
+            site.nome +
+            " — " +
+            site.url;
+
+
+        select.appendChild(option);
+
+    });
+
+
+    const existe =
+        sites.some(
+            site =>
+                site.id === siteAtual
+        );
+
+
+    if (!existe) {
+
+        siteAtual =
+            sites[0].id;
+
+    }
+
+
+    select.value =
+        siteAtual;
+
+
+    select.onchange =
+        function () {
+
+            siteAtual =
+                Number(this.value);
+
+            atualizarDashboard();
+
+        };
+
+}
+
+
+/* =========================
+   GRÁFICO
+========================= */
+
+
+function desenharGrafico(historico) {
+
+
+    const canvas =
+        document.getElementById("grafico");
+
+
+    const ctx =
+        canvas.getContext("2d");
+
+
+    const registros =
+        historico
+            .filter(
+                registro =>
+                    registro.tempo_resposta_ms !== null
+            )
+            .slice(0, 10)
+            .reverse();
+
+
+    const largura =
+        canvas.clientWidth;
+
+
+    const altura =
+        canvas.clientHeight;
+
+
+    const escala =
+        window.devicePixelRatio || 1;
+
+
+    canvas.width =
+        largura * escala;
+
+
+    canvas.height =
+        altura * escala;
+
+
+    ctx.scale(
+        escala,
+        escala
+    );
+
+
+    ctx.clearRect(
+        0,
+        0,
+        largura,
+        altura
+    );
+
+
+    if (registros.length === 0) {
+
+        ctx.fillStyle =
+            "#9ca3af";
+
+        ctx.font =
+            "14px Arial";
+
+        ctx.fillText(
+            "Ainda não existem dados suficientes.",
+            30,
+            altura / 2
+        );
+
+        return;
+
+    }
+
+
+    const valores =
+        registros.map(
+            registro =>
+                registro.tempo_resposta_ms
+        );
+
+
+    const maior =
+        Math.max(...valores);
+
+
+    const menor =
+        Math.min(...valores);
+
+
+    const margem =
+        35;
+
+
+    const larguraGrafico =
+        largura - margem * 2;
+
+
+    const alturaGrafico =
+        altura - margem * 2;
+
+
+    ctx.strokeStyle =
+        "#e5e7eb";
+
+
+    ctx.lineWidth =
+        1;
+
+
+    for (
+        let i = 0;
+        i <= 4;
+        i++
+    ) {
+
+
+        const y =
+            margem +
+            (alturaGrafico / 4) * i;
+
+
+        ctx.beginPath();
+
+
+        ctx.moveTo(
+            margem,
+            y
+        );
+
+
+        ctx.lineTo(
+            largura - margem,
+            y
+        );
+
+
+        ctx.stroke();
+
+    }
+
+
+    ctx.beginPath();
+
+
+    registros.forEach(
+        (registro, index) => {
+
+
+            const x =
+                margem +
+                (
+                    larguraGrafico /
+                    Math.max(
+                        registros.length - 1,
+                        1
+                    )
+                ) *
+                index;
+
+
+            const proporcao =
+                maior === menor
+                    ? 0.5
+                    :
+                    (
+                        registro.tempo_resposta_ms -
+                        menor
+                    ) /
+                    (
+                        maior -
+                        menor
+                    );
+
+
+            const y =
+                margem +
+                alturaGrafico -
+                proporcao *
+                alturaGrafico;
+
+
+            if (index === 0) {
+
+                ctx.moveTo(
+                    x,
+                    y
+                );
+
+            } else {
+
+                ctx.lineTo(
+                    x,
+                    y
+                );
+
+            }
+
+        }
+    );
+
+
+    ctx.strokeStyle =
+        "#2563eb";
+
+
+    ctx.lineWidth =
+        3;
+
+
+    ctx.stroke();
+
+
+    registros.forEach(
+        (registro, index) => {
+
+
+            const x =
+                margem +
+                (
+                    larguraGrafico /
+                    Math.max(
+                        registros.length - 1,
+                        1
+                    )
+                ) *
+                index;
+
+
+            const proporcao =
+                maior === menor
+                    ? 0.5
+                    :
+                    (
+                        registro.tempo_resposta_ms -
+                        menor
+                    ) /
+                    (
+                        maior -
+                        menor
+                    );
+
+
+            const y =
+                margem +
+                alturaGrafico -
+                proporcao *
+                alturaGrafico;
+
+
+            ctx.beginPath();
+
+
+            ctx.arc(
+                x,
+                y,
+                4,
+                0,
+                Math.PI * 2
+            );
+
+
+            ctx.fillStyle =
+                "#2563eb";
+
+
+            ctx.fill();
+
+        }
+    );
+
+}
+
+
+/* =========================
+   ATUALIZAR DASHBOARD
+========================= */
+
+
+async function atualizarDashboard() {
+
+
+    try {
+
+
+        const statusResponse =
+            await fetch(
+                "/status?site_id=" +
+                siteAtual
+            );
+
+
+        const status =
+            await statusResponse.json();
+
+
+        if (!statusResponse.ok) {
+
+            console.error(status);
+
+            return;
 
         }
 
 
-        atualizarDashboard();
+        const metricsResponse =
+            await fetch(
+                "/metrics?site_id=" +
+                siteAtual
+            );
 
 
-        setInterval(
-            atualizarDashboard,
-            10000
+        const metrics =
+            await metricsResponse.json();
+
+
+        const historyResponse =
+            await fetch(
+                "/history?site_id=" +
+                siteAtual
+            );
+
+
+        const history =
+            await historyResponse.json();
+
+
+        document
+            .getElementById("siteNome")
+            .textContent =
+                status.nome;
+
+
+        document
+            .getElementById("url")
+            .textContent =
+                status.url;
+
+
+        const elementoStatus =
+            document
+                .getElementById("status");
+
+
+        elementoStatus.textContent =
+            status.status;
+
+
+        elementoStatus.className =
+            "status-badge " +
+            (
+                status.status === "ONLINE"
+                    ? "online"
+                    : "offline"
+            );
+
+
+        document
+            .getElementById("checks")
+            .textContent =
+                metrics.checks;
+
+
+        document
+            .getElementById("falhas")
+            .textContent =
+                metrics.falhas;
+
+
+        document
+            .getElementById("uptime")
+            .textContent =
+                metrics.uptime.toFixed(2) +
+                "%";
+
+
+        document
+            .getElementById("media")
+            .textContent =
+                metrics.tempo_medio_ms.toFixed(2) +
+                " ms";
+
+
+        document
+            .getElementById("maior")
+            .textContent =
+                metrics.maior_tempo_ms.toFixed(2) +
+                " ms";
+
+
+        document
+            .getElementById("codigo")
+            .textContent =
+                status.codigo_http ??
+                "---";
+
+
+        document
+            .getElementById("tempo")
+            .textContent =
+                status.tempo_resposta_ms !== null
+                    ?
+                    status.tempo_resposta_ms.toFixed(2) +
+                    " ms"
+                    :
+                    "---";
+
+
+        const tabela =
+            document
+                .getElementById("historico");
+
+
+        tabela.innerHTML = "";
+
+
+        if (history.length === 0) {
+
+            tabela.innerHTML = `
+                <tr>
+                    <td colspan="4">
+                        Nenhum monitoramento registrado.
+                    </td>
+                </tr>
+            `;
+
+        }
+
+
+        history.forEach(
+            registro => {
+
+
+                const linha =
+                    document.createElement("tr");
+
+
+                const data =
+                    new Date(
+                        registro.data_hora
+                    );
+
+
+                const statusClass =
+                    registro.status === "ONLINE"
+                        ?
+                        "status-online"
+                        :
+                        "status-offline";
+
+
+                linha.innerHTML = `
+
+                    <td>
+                        ${data.toLocaleString("pt-BR")}
+                    </td>
+
+                    <td class="${statusClass}">
+                        ${registro.status}
+                    </td>
+
+                    <td>
+                        ${registro.codigo_http ?? "---"}
+                    </td>
+
+                    <td>
+                        ${
+                            registro.tempo_resposta_ms !== null
+                                ?
+                                registro.tempo_resposta_ms.toFixed(2) +
+                                " ms"
+                                :
+                                "---"
+                        }
+                    </td>
+
+                `;
+
+
+                tabela.appendChild(
+                    linha
+                );
+
+            }
         );
 
-    </script>
+
+        desenharGrafico(
+            history
+        );
+
+
+    } catch (erro) {
+
+
+        console.error(
+            "Erro ao atualizar dashboard:",
+            erro
+        );
+
+    }
+
+}
+
+
+/* =========================
+   INICIAR
+========================= */
+
+
+async function iniciar() {
+
+    await carregarSites();
+
+    await atualizarDashboard();
+
+}
+
+
+iniciar();
+
+
+/* Atualiza a cada 10 segundos */
+
+setInterval(
+    atualizarDashboard,
+    10000
+);
+
+
+/* Fecha modal clicando fora */
+
+document
+    .getElementById("modal")
+    .addEventListener(
+        "click",
+        function(event) {
+
+            if (
+                event.target === this
+            ) {
+
+                fecharModal();
+
+            }
+
+        }
+    );
+
+
+</script>
+
 
 </body>
 

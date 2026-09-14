@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        Login — Cloud Security Monitor
+    </title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+
+            margin: 0;
+
+            min-height: 100vh;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background: #f5f7fb;
+
+            color: #1f2937;
+        }
+
+
+        .login-container {
+
+            width: 100%;
+
+            max-width: 430px;
+
+            padding: 20px;
+        }
+
+
+        .login-card {
+
+            background: white;
+
+            border-radius: 20px;
+
+            padding: 40px;
+
+            box-shadow:
+                0 10px 35px
+                rgba(0,0,0,0.08);
+        }
+
+
+        .logo {
+
+            text-align: center;
+
+            margin-bottom: 30px;
+        }
+
+
+        .logo-icon {
+
+            font-size: 48px;
+
+            margin-bottom: 10px;
+        }
+
+
+        .logo h1 {
+
+            margin: 0;
+
+            font-size: 26px;
+
+            color: #111827;
+        }
+
+
+        .logo p {
+
+            margin-top: 8px;
+
+            color: #6b7280;
+
+            font-size: 14px;
+        }
+
+
+        .form-group {
+
+            margin-bottom: 20px;
+        }
+
+
+        label {
+
+            display: block;
+
+            margin-bottom: 8px;
+
+            font-size: 14px;
+
+            font-weight: bold;
+
+            color: #374151;
+        }
+
+
+        input {
+
+            width: 100%;
+
+            padding: 14px;
+
+            border: 1px solid #d1d5db;
+
+            border-radius: 10px;
+
+            font-size: 15px;
+
+            outline: none;
+        }
+
+
+        input:focus {
+
+            border-color: #2563eb;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(37,99,235,0.1);
+        }
+
+
+        button {
+
+            width: 100%;
+
+            padding: 14px;
+
+            border: none;
+
+            border-radius: 10px;
+
+            background: #2563eb;
+
+            color: white;
+
+            font-size: 16px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+
+        button:hover {
+
+            background: #1d4ed8;
+        }
+
+
+        .erro {
+
+            background: #fee2e2;
+
+            color: #dc2626;
+
+            padding: 12px;
+
+            border-radius: 10px;
+
+            margin-bottom: 20px;
+
+            font-size: 14px;
+
+            text-align: center;
+        }
+
+
+        /* =================================================
+           CADASTRO
+        ================================================= */
+
+        .register {
+
+            text-align: center;
+
+            margin-top: 20px;
+
+            font-size: 14px;
+
+            color: #6b7280;
+        }
+
+
+        .register a {
+
+            color: #2563eb;
+
+            text-decoration: none;
+
+            font-weight: bold;
+        }
+
+
+        .register a:hover {
+
+            text-decoration: underline;
+        }
+
+
+        /* =================================================
+           RODAPÉ
+        ================================================= */
+
+        .footer {
+
+            text-align: center;
+
+            margin-top: 20px;
+
+            color: #9ca3af;
+
+            font-size: 12px;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="login-container">
+
+
+    <div class="login-card">
+
+
+        <!-- =================================================
+             LOGO
+        ================================================= -->
+
+        <div class="logo">
+
+            <div class="logo-icon">
+                ☁️
+            </div>
+
+
+            <h1>
+                Cloud Security Monitor
+            </h1>
+
+
+            <p>
+                Acesse seu painel de monitoramento
+            </p>
+
+        </div>
+
+
+
+        <!-- =================================================
+             MENSAGEM DE ERRO
+        ================================================= -->
+
+        {% if erro %}
+
+        <div class="erro">
+
+            {{ erro }}
+
+        </div>
+
+        {% endif %}
+
+
+
+        <!-- =================================================
+             FORMULÁRIO DE LOGIN
+        ================================================= -->
+
+        <form
+            method="POST"
+            action="/login"
+        >
+
+
+            <!-- E-MAIL -->
+
+            <div class="form-group">
+
+                <label for="email">
+
+                    E-mail
+
+                </label>
+
+
+                <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    required
+                >
+
+            </div>
+
+
+
+            <!-- SENHA -->
+
+            <div class="form-group">
+
+                <label for="senha">
+
+                    Senha
+
+                </label>
+
+
+                <input
+                    id="senha"
+                    name="senha"
+                    type="password"
+                    placeholder="••••••••"
+                    required
+                >
+
+            </div>
+
+
+
+            <!-- BOTÃO -->
+
+            <button type="submit">
+
+                Entrar
+
+            </button>
+
+
+        </form>
+
+
+
+        <!-- =================================================
+             CADASTRO
+        ================================================= -->
+
+        <div class="register">
+
+            Ainda não possui uma conta?
+
+            <a href="/register">
+
+                Criar conta
+
+            </a>
+
+        </div>
+
+
+    </div>
+
+
+
+    <!-- =====================================================
+         RODAPÉ
+    ===================================================== -->
+
+    <div class="footer">
+
+        Cloud Security Monitor · Segurança e monitoramento
+
+    </div>
+
+
+</div>
+
+
+</body>
+
+</html>

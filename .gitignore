@@ -3,5 +3,6 @@ __pycache__/
 .venv/
 venv/
 .env
-logs/*.log
+monitor.db
 .vscode/
+logs/*.log
