@@ -1,100 +1,95 @@
-import sqlite3
-
-from database import DATABASE
+from database import conectar
 
 
-def obter_metricas(site_id=1):
+def obter_metricas(site_id):
 
-    conexao = sqlite3.connect(
-        DATABASE
-    )
+    conexao = conectar()
 
     cursor = conexao.cursor()
 
-
-    cursor.execute("""
-        SELECT COUNT(*)
-        FROM monitoramentos
-        WHERE site_id = ?
-    """, (
-        site_id,
-    ))
-
-
-    checks = cursor.fetchone()[0]
-
-
-    cursor.execute("""
-        SELECT COUNT(*)
-        FROM monitoramentos
-        WHERE site_id = ?
-        AND status != 'ONLINE'
-    """, (
-        site_id,
-    ))
-
-
-    falhas = cursor.fetchone()[0]
-
-
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT
-            AVG(tempo_resposta),
-            MAX(tempo_resposta)
-        FROM monitoramentos
-        WHERE site_id = ?
-        AND tempo_resposta IS NOT NULL
-    """, (
-        site_id,
-    ))
+            COUNT(*) AS total,
 
+            SUM(
+                CASE
+                    WHEN UPPER(status) = 'ONLINE'
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS online,
+
+            SUM(
+                CASE
+                    WHEN UPPER(status) = 'OFFLINE'
+                    THEN 1
+                    ELSE 0
+                END
+            ) AS offline,
+
+            AVG(tempo_resposta) AS tempo_medio
+
+        FROM monitoramentos
+
+        WHERE site_id = ?
+        """,
+        (site_id,)
+    )
 
     resultado = cursor.fetchone()
 
-
-    tempo_medio = resultado[0]
-
-    maior_tempo = resultado[1]
-
-
     conexao.close()
 
+    total = resultado["total"] or 0
 
-    if tempo_medio is None:
-        tempo_medio = 0
+    online = resultado["online"] or 0
+
+    offline = resultado["offline"] or 0
+
+    tempo_medio = resultado["tempo_medio"] or 0
 
 
-    if maior_tempo is None:
-        maior_tempo = 0
+    # ========================================================
+    # DISPONIBILIDADE
+    # ========================================================
 
+    if total > 0:
 
-    if checks > 0:
-
-        uptime = (
-            (checks - falhas)
-            / checks
+        disponibilidade = (
+            online / total
         ) * 100
 
     else:
 
-        uptime = 0
+        disponibilidade = 0
 
+
+    # ========================================================
+    # RESULTADO
+    # ========================================================
 
     return {
 
-        "checks":
-            checks,
+        "total_verificacoes":
+            total,
 
-        "falhas":
-            falhas,
+        "online":
+            online,
 
-        "uptime":
-            uptime,
+        "offline":
+            offline,
+
+        "disponibilidade":
+            round(
+                disponibilidade,
+                2
+            ),
 
         "tempo_medio_ms":
-            tempo_medio,
-
-        "maior_tempo_ms":
-            maior_tempo
+            round(
+                tempo_medio,
+                2
+            )
 
     }
