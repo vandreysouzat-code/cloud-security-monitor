@@ -6,3 +6,5 @@ venv/
 monitor.db
 .vscode/
 logs/*.log
+backups/
+teste_alerta.py
