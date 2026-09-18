@@ -4007,12 +4007,65 @@
     }
 
 
+    let tokenCsrf = null;
+
+
+    async function obterTokenCsrfDashboard() {
+
+        if (tokenCsrf) {
+            return tokenCsrf;
+        }
+
+        const resposta = await fetch(
+            "/api/csrf-token",
+            {
+                method: "GET",
+                credentials: "same-origin",
+                cache: "no-store"
+            }
+        );
+
+        let dados = null;
+
+        try {
+            dados = await resposta.json();
+        } catch (erro) {
+            dados = null;
+        }
+
+        if (!resposta.ok || !dados?.csrf_token) {
+            throw new Error(
+                dados?.erro ||
+                "Não foi possível obter o token de segurança."
+            );
+        }
+
+        tokenCsrf = dados.csrf_token;
+
+        return tokenCsrf;
+    }
+
+
     async function apiFetch(url, options = {}) {
 
         const configuracao = {
             credentials: "same-origin",
             ...options
         };
+
+        const metodo = String(
+            configuracao.method || "GET"
+        ).toUpperCase();
+
+        if (["POST", "PUT", "PATCH", "DELETE"].includes(metodo)) {
+
+            const token = await obterTokenCsrfDashboard();
+
+            configuracao.headers = {
+                ...(configuracao.headers || {}),
+                "X-CSRF-Token": token
+            };
+        }
 
         const resposta = await fetch(url, configuracao);
 
