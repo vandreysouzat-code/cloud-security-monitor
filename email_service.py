@@ -1,4 +1,5 @@
 import os
+import socket
 import smtplib
 from email.message import EmailMessage
 
@@ -28,12 +29,36 @@ def enviar_email(destinatario, assunto, mensagem):
     email["Subject"] = assunto
     email.set_content(mensagem)
 
-    with smtplib.SMTP(smtp_server, smtp_port, timeout=15) as servidor:
-        servidor.ehlo()
-        servidor.starttls()
-        servidor.ehlo()
-        servidor.login(smtp_user, smtp_password)
-        servidor.send_message(email)
+    endereco_original = socket.getaddrinfo
+
+    def resolver_ipv4(host, port, *args, **kwargs):
+        return endereco_original(
+            host,
+            port,
+            socket.AF_INET,
+            socket.SOCK_STREAM
+        )
+
+    socket.getaddrinfo = resolver_ipv4
+
+    try:
+        with smtplib.SMTP(
+            smtp_server,
+            smtp_port,
+            timeout=15
+        ) as servidor:
+
+            servidor.ehlo()
+            servidor.starttls()
+            servidor.ehlo()
+            servidor.login(
+                smtp_user,
+                smtp_password
+            )
+            servidor.send_message(email)
+
+    finally:
+        socket.getaddrinfo = endereco_original
 
     print(f"📧 E-mail enviado para {destinatario}")
 

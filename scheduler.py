@@ -5,10 +5,13 @@ from datetime import datetime
 import config
 
 from monitor import verificar_url
+from ssl_monitor import verificar_ssl
+from ssl_alerts import analisar_expiracao_ssl
 
 from database import (
     listar_todos_sites_admin,
-    registrar_monitoramento
+    registrar_monitoramento,
+    salvar_ssl_monitoramento
 )
 
 from alerts import (
@@ -16,17 +19,18 @@ from alerts import (
     criar_tabela_incidentes
 )
 
+from ssl_alert_manager import (
+    criar_tabela_ssl_alertas,
+    criar_alerta_ssl,
+    desativar_alertas_ssl
+)
+
 
 INTERVALO_MONITORAMENTO = 60
 
 _monitoramento_iniciado = False
-
 _lock = threading.Lock()
 
-
-# ==============================================================
-# EXECUTAR UM CICLO
-# ==============================================================
 
 def executar_monitoramento():
 
@@ -41,88 +45,51 @@ def executar_monitoramento():
 
     except Exception as erro:
 
-        print(
-            f"❌ Erro ao buscar sites: {erro}"
-        )
+        print(f"❌ Erro ao buscar sites: {erro}")
 
         return
 
     if not sites:
 
-        print(
-            "ℹ️ Nenhum site cadastrado "
-            "para monitoramento."
-        )
+        print("ℹ️ Nenhum site cadastrado para monitoramento.")
 
         return
 
-    print(
-        f"🌐 Sites encontrados: {len(sites)}"
-    )
+    print(f"🌐 Sites encontrados: {len(sites)}")
 
     for site in sites:
 
         site_id = site["id"]
-
         nome = site["nome"]
-
         url = site["url"]
 
         print()
         print("-" * 60)
 
-        print(
-            f"🔎 Verificando: {nome}"
-        )
+        print(f"🔎 Verificando: {nome}")
+        print(f"🌐 URL: {url}")
+        print(f"⏱️ Timeout configurado: {config.TIMEOUT} segundos")
 
-        print(
-            f"🌐 URL: {url}"
-        )
-
-        print(
-            f"⏱️ Timeout configurado: "
-            f"{config.TIMEOUT} segundos"
-        )
+        # ==========================================================
+        # MONITORAMENTO HTTP/HTTPS
+        # ==========================================================
 
         try:
-
-            # ==================================================
-            # VERIFICAR SITE
-            # ==================================================
 
             resultado = verificar_url(
                 url,
                 config.TIMEOUT
             )
 
-            # ==================================================
-            # SALVAR MONITORAMENTO
-            # ==================================================
-
             registrar_monitoramento(
                 site_id=site_id,
                 status=resultado["status"],
-                tempo_resposta=(
-                    resultado["tempo_resposta"]
-                ),
-                codigo_http=(
-                    resultado["codigo_http"]
-                )
+                tempo_resposta=resultado["tempo_resposta"],
+                codigo_http=resultado["codigo_http"]
             )
 
-            # ==================================================
-            # EXIBIR RESULTADO
-            # ==================================================
-
-            print(
-                f"📊 Status: "
-                f"{resultado['status']}"
-            )
-
-            print(
-                f"📡 HTTP: "
-                f"{resultado['codigo_http']}"
-            )
+            print(f"📊 Status: {resultado['status']}")
+            print(f"📡 HTTP: {resultado['codigo_http']}")
 
             if resultado["tempo_resposta"] is not None:
 
@@ -131,15 +98,13 @@ def executar_monitoramento():
                     f"{resultado['tempo_resposta']:.2f} ms"
                 )
 
-            # ==================================================
-            # PROCESSAR INCIDENTE
-            # ==================================================
+            # ======================================================
+            # ALERTAS / INCIDENTES
+            # ======================================================
 
             try:
 
-                alerta = processar_alerta(
-                    site_id
-                )
+                alerta = processar_alerta(site_id)
 
                 print(
                     f"🔔 Estado do alerta: "
@@ -149,7 +114,7 @@ def executar_monitoramento():
             except Exception as erro_alerta:
 
                 print(
-                    "❌ Erro ao processar alerta: "
+                    f"❌ Erro ao processar alerta: "
                     f"{erro_alerta}"
                 )
 
@@ -159,6 +124,117 @@ def executar_monitoramento():
                 f"❌ Erro ao verificar "
                 f"{url}: {erro}"
             )
+
+        # ==========================================================
+        # MONITORAMENTO SSL
+        # ==========================================================
+
+        if url.lower().startswith("https://"):
+
+            print()
+            print("🔐 Verificando certificado SSL...")
+
+            try:
+
+                ssl_resultado = verificar_ssl(url)
+
+                salvar_ssl_monitoramento(
+                    site_id=site_id,
+                    dominio=ssl_resultado["dominio"],
+                    ip=ssl_resultado["ip"],
+                    valido=ssl_resultado["valido"],
+                    data_expiracao=ssl_resultado["data_expiracao"],
+                    dias_restantes=ssl_resultado["dias_restantes"]
+                )
+
+                print(
+                    f"🔐 SSL válido: "
+                    f"{ssl_resultado['valido']}"
+                )
+
+                print(
+                    f"🌐 IP: "
+                    f"{ssl_resultado['ip']}"
+                )
+
+                print(
+                    f"📅 Expira em: "
+                    f"{ssl_resultado['data_expiracao']}"
+                )
+
+                print(
+                    f"⏳ Dias restantes: "
+                    f"{ssl_resultado['dias_restantes']}"
+                )
+
+                # ==================================================
+                # ANÁLISE INTELIGENTE DE EXPIRAÇÃO SSL
+                # ==================================================
+
+                ssl_alerta = analisar_expiracao_ssl(
+                    ssl_resultado["dias_restantes"]
+                )
+
+                print(
+                    f"🛡️ Nível SSL: "
+                    f"{ssl_alerta['nivel']}"
+                )
+
+                print(
+                    f"📢 {ssl_alerta['mensagem']}"
+                )
+
+                # ==================================================
+                # GERENCIAMENTO DE ALERTA SSL
+                # ==================================================
+
+                if ssl_alerta["nivel"] == "NORMAL":
+
+                    quantidade_desativada = (
+                        desativar_alertas_ssl(site_id)
+                    )
+
+                    if quantidade_desativada > 0:
+
+                        print(
+                            f"🟢 Alertas SSL anteriores "
+                            f"desativados: "
+                            f"{quantidade_desativada}"
+                        )
+
+                else:
+
+                    resultado_alerta_ssl = criar_alerta_ssl(
+                        site_id=site_id,
+                        nivel=ssl_alerta["nivel"],
+                        dias_restantes=ssl_resultado["dias_restantes"],
+                        mensagem=ssl_alerta["mensagem"]
+                    )
+
+                    if resultado_alerta_ssl["criado"]:
+
+                        print(
+                            "🚨 Novo alerta SSL registrado."
+                        )
+
+                    else:
+
+                        print(
+                            "ℹ️ Alerta SSL já registrado "
+                            "para este nível."
+                        )
+
+            except Exception as erro_ssl:
+
+                print(
+                    f"⚠️ Erro na verificação SSL: "
+                    f"{erro_ssl}"
+                )
+
+        else:
+
+            print()
+            print("ℹ️ Site HTTP — verificação SSL ignorada.")
 
     print()
     print("=" * 60)
@@ -173,10 +249,6 @@ def executar_monitoramento():
     print("=" * 60)
 
 
-# ==============================================================
-# LOOP
-# ==============================================================
-
 def loop_monitoramento():
 
     while True:
@@ -188,8 +260,8 @@ def loop_monitoramento():
         except Exception as erro:
 
             print(
-                "❌ Erro no monitoramento "
-                f"automático: {erro}"
+                f"❌ Erro no monitoramento automático: "
+                f"{erro}"
             )
 
         print()
@@ -203,10 +275,6 @@ def loop_monitoramento():
             INTERVALO_MONITORAMENTO
         )
 
-
-# ==============================================================
-# INICIAR MONITORAMENTO
-# ==============================================================
 
 def iniciar_monitoramento_automatico():
 
@@ -251,16 +319,14 @@ def iniciar_monitoramento_automatico():
         )
 
         print("=" * 60)
+
         print()
 
-
-# ==============================================================
-# EXECUÇÃO DIRETA
-# ==============================================================
 
 if __name__ == "__main__":
 
     criar_tabela_incidentes()
+    criar_tabela_ssl_alertas()
 
     iniciar_monitoramento_automatico()
 
@@ -274,6 +340,5 @@ if __name__ == "__main__":
 
         print()
         print(
-            "🛑 Monitoramento encerrado "
-            "pelo usuário."
+            "🛑 Monitoramento encerrado pelo usuário."
         )

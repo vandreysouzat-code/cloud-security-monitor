@@ -1,1156 +1,695 @@
 import os
-import ipaddress
-import requests
 import secrets
-
 from datetime import timedelta
 from functools import wraps
-from urllib.parse import urlparse
 
 from flask import (
     Flask,
     jsonify,
+    redirect,
+    render_template,
     request,
     session,
-    redirect,
     url_for,
-    render_template
 )
 
+from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
-from werkzeug.security import check_password_hash
+
+import database
 
 from database import (
-    criar_banco,
+    conectar,
     criar_usuario,
     buscar_usuario_por_email,
     buscar_usuario_por_id,
-    listar_usuarios,
-    alterar_usuario_admin,
     criar_site,
-    listar_sites,
     buscar_site,
+    listar_sites,
     excluir_site,
     listar_monitoramentos,
-    listar_ssl,
-    listar_todos_sites_admin,
-    listar_todos_ssl_admin,
     registrar_auditoria,
-    listar_auditoria
 )
 
+from alerts import listar_incidentes
+from ssl_alert_manager import listar_alertas_ssl
 from metrics import obter_metricas
 
-from alerts import (
-    listar_incidentes
-)
-
-from scheduler import (
-    iniciar_monitoramento_automatico
-)
+from scheduler import iniciar_monitoramento_automatico
 
 
 # ============================================================
 # CONFIGURAÇÃO
 # ============================================================
 
-app = Flask(
-    __name__,
-    template_folder="templates"
-)
-
-
-# ------------------------------------------------------------
-# AMBIENTE
-# ------------------------------------------------------------
+app = Flask(__name__)
 
 PRODUCAO = (
-    os.environ.get("FLASK_ENV") == "production"
-    or os.environ.get("RENDER") == "true"
+    os.environ.get("FLASK_ENV", "").lower() == "production"
+    or os.environ.get("RENDER", "").lower() == "true"
 )
-
-
-# ------------------------------------------------------------
-# SECRET KEY
-# ------------------------------------------------------------
 
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
+if PRODUCAO and not SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY não configurada. Defina a variável SECRET_KEY no ambiente."
+    )
 
 if not SECRET_KEY:
-
-    if PRODUCAO:
-
-        raise RuntimeError(
-            "SECRET_KEY não configurada no ambiente de produção."
-        )
-
     SECRET_KEY = "chave-local-desenvolvimento"
-
 
 app.secret_key = SECRET_KEY
 
-
-# ------------------------------------------------------------
-# PROXY
-# ------------------------------------------------------------
-#
-# O Render fica na frente da aplicação.
-#
-# x_for=1:
-#   considera um proxy confiável imediatamente à frente.
-#
-# x_proto=1:
-#   permite que Flask saiba que a requisição original
-#   chegou por HTTPS.
-#
-# x_host=1:
-#   preserva o host original informado pelo proxy.
-#
-# IMPORTANTE:
-# Não usamos mais manualmente X-Forwarded-For.
-# O Flask/Werkzeug passa a tratar isso através do ProxyFix.
-#
+app.config["SESSION_COOKIE_NAME"] = "csm_session"
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = PRODUCAO
+app.config["SESSION_REFRESH_EACH_REQUEST"] = True
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=12)
 
 app.wsgi_app = ProxyFix(
     app.wsgi_app,
     x_for=1,
     x_proto=1,
-    x_host=1
-)
-
-
-# ------------------------------------------------------------
-# SESSÃO
-# ------------------------------------------------------------
-
-app.config.update(
-
-    SECRET_KEY=SECRET_KEY,
-
-    SESSION_COOKIE_NAME="csm_session",
-
-    SESSION_COOKIE_HTTPONLY=True,
-
-    SESSION_COOKIE_SAMESITE="Lax",
-
-    SESSION_COOKIE_SECURE=PRODUCAO,
-
-    SESSION_REFRESH_EACH_REQUEST=True,
-
-    PERMANENT_SESSION_LIFETIME=timedelta(
-        hours=12
-    ),
-
-    MAX_CONTENT_LENGTH=1 * 1024 * 1024
-
+    x_host=1,
 )
 
 
 # ============================================================
-# CLOUDFLARE DNS OVER HTTPS
-# ============================================================
-
-DOH_URL = "https://1.1.1.1/dns-query"
-
-
-# ============================================================
-# BANCO
-# ============================================================
-
-criar_banco()
-
-
-# ============================================================
-# FUNÇÕES AUXILIARES
-# ============================================================
-
-# ============================================================
-# PROTEÇÃO CSRF
+# CSRF
 # ============================================================
 
 METODOS_QUE_EXIGEM_CSRF = {
     "POST",
     "PUT",
     "PATCH",
-    "DELETE"
+    "DELETE",
 }
 
 
 def obter_token_csrf():
+    """
+    Obtém o token CSRF da sessão.
+    Caso ainda não exista, cria um novo.
+    """
 
-    token = session.get(
-        "csrf_token"
-    )
+    token = session.get("csrf_token")
 
     if not token:
-
         token = secrets.token_urlsafe(32)
-
         session["csrf_token"] = token
 
     return token
 
 
 def validar_csrf():
+    """
+    Valida o token CSRF enviado pelo navegador.
+
+    Aceita token por:
+    - Header X-CSRF-Token
+    - JSON csrf_token
+    - Form csrf_token
+    """
 
     if request.method not in METODOS_QUE_EXIGEM_CSRF:
-
         return True
 
-
-    if request.path in (
-        "/login",
-        "/register"
-    ):
-
+    # Login e cadastro não dependem de uma sessão anterior.
+    if request.path in ("/login", "/register"):
         return True
 
+    token_sessao = session.get("csrf_token")
 
-    token_sessao = session.get(
-        "csrf_token"
-    )
-
-
-    token_requisicao = request.headers.get(
-        "X-CSRF-Token"
-    )
-
-
-    if not token_sessao or not token_requisicao:
-
+    if not token_sessao:
         return False
 
+    token_requisicao = request.headers.get("X-CSRF-Token")
 
-    return secrets.compare_digest(
-        token_sessao,
-        token_requisicao
-    )
+    if not token_requisicao:
+        dados_json = request.get_json(silent=True)
 
+        if isinstance(dados_json, dict):
+            token_requisicao = dados_json.get("csrf_token")
 
-def usuario_logado():
+    if not token_requisicao:
+        token_requisicao = request.form.get("csrf_token")
 
-    usuario_id = session.get(
-        "usuario_id"
-    )
-
-    if not usuario_id:
-
-        return None
-
-
-    usuario = buscar_usuario_por_id(
-        usuario_id
-    )
-
-
-    if not usuario:
-
-        session.clear()
-
-        return None
-
-
-    if not usuario["ativo"]:
-
-        session.clear()
-
-        return None
-
-
-    return usuario
-
-
-def obter_ip():
-
-    # --------------------------------------------------------
-    # O endereço agora vem do Flask/Werkzeug depois do
-    # processamento seguro do proxy.
-    # --------------------------------------------------------
-
-    ip = request.remote_addr
-
-
-    if not ip:
-
-        return ""
-
-
-    return ip.strip()
-
-
-def registrar_log(
-    usuario_id,
-    acao,
-    descricao=None,
-    detalhes=None
-):
+    if not token_requisicao:
+        return False
 
     try:
-
-        registrar_auditoria(
-            usuario_id=usuario_id,
-            acao=acao,
-            descricao=descricao,
-            detalhes=detalhes,
-            ip=obter_ip()
+        return secrets.compare_digest(
+            token_sessao,
+            token_requisicao,
         )
+    except Exception:
+        return False
 
-    except Exception as erro:
-
-        print(
-            f"⚠️ Erro ao registrar auditoria: {erro}"
-        )
-
-
-def resposta_erro_api(
-    mensagem,
-    status
-):
-
-    return jsonify({
-
-        "erro": mensagem
-
-    }), status
-
-
-# ============================================================
-# PROTEÇÃO CSRF - BEFORE REQUEST
-# ============================================================
 
 @app.before_request
 def proteger_contra_csrf():
 
-    if validar_csrf():
-
+    if request.method not in METODOS_QUE_EXIGEM_CSRF:
         return None
 
-
-    if (
-        request.path.startswith("/api/")
-        or request.path.startswith("/admin/")
-        or request.path in (
+    caminhos_protegidos = (
+        request.path.startswith("/api/"),
+        request.path.startswith("/admin/"),
+        request.path in (
             "/logout",
             "/login",
-            "/register"
-        )
-    ):
-
-        return resposta_erro_api(
-            "Token CSRF inválido ou ausente.",
-            403
-        )
-
-
-    return (
-        "Token CSRF inválido ou ausente.",
-        403
+            "/register",
+        ),
     )
 
+    if not any(caminhos_protegidos):
+        return None
+
+    if validar_csrf():
+        return None
+
+    if request.path.startswith("/api/") or request.is_json:
+        return jsonify({
+            "sucesso": False,
+            "erro": "Token CSRF inválido ou ausente."
+        }), 403
+
+    return "Token CSRF inválido ou ausente.", 403
+
 
 # ============================================================
-# VERIFICAR SE UM IP É PERMITIDO
+# AUTENTICAÇÃO
 # ============================================================
 
-def ip_e_permitido(ip):
+def usuario_logado():
+    """
+    Retorna o usuário atualmente autenticado.
+    """
+
+    usuario_id = session.get("usuario_id")
+
+    if not usuario_id:
+        return None
 
     try:
-
-        endereco_ip = ipaddress.ip_address(
-            ip
-        )
-
-    except ValueError:
-
-        return False
-
-
-    if (
-        endereco_ip.is_private
-        or endereco_ip.is_loopback
-        or endereco_ip.is_link_local
-        or endereco_ip.is_reserved
-        or endereco_ip.is_multicast
-        or endereco_ip.is_unspecified
-    ):
-
-        return False
-
-
-    return True
-
-
-# ============================================================
-# RESOLVER DOMÍNIO COM CLOUDFLARE DOH
-# ============================================================
-
-def resolver_enderecos_publicos(
-    dominio,
-    timeout=5
-):
-
-    resposta = requests.get(
-
-        DOH_URL,
-
-        params={
-            "name": dominio,
-            "type": "A"
-        },
-
-        headers={
-            "Accept": "application/dns-json"
-        },
-
-        timeout=timeout
-    )
-
-
-    resposta.raise_for_status()
-
-
-    dados = resposta.json()
-
-
-    if dados.get("Status") != 0:
-
-        raise ValueError(
-            "Não foi possível resolver o domínio."
-        )
-
-
-    respostas = dados.get(
-        "Answer",
-        []
-    )
-
-
-    ips = []
-
-
-    for registro in respostas:
-
-        if registro.get("type") != 1:
-
-            continue
-
-
-        endereco = registro.get(
-            "data"
-        )
-
-
-        if not endereco:
-
-            continue
-
-
-        try:
-
-            endereco_ip = ipaddress.ip_address(
-                endereco
-            )
-
-        except ValueError:
-
-            continue
-
-
-        if not ip_e_permitido(
-            endereco_ip
-        ):
-
-            raise ValueError(
-                "O domínio resolve para uma rede não permitida."
-            )
-
-
-        ips.append(
-            str(endereco_ip)
-        )
-
-
-    if not ips:
-
-        raise ValueError(
-            "Não foi possível encontrar um endereço IPv4 público para o domínio."
-        )
-
-
-    return list(
-        dict.fromkeys(ips)
-    )
-
-
-# ============================================================
-# VALIDAÇÃO DE URL
-# ============================================================
-
-def validar_url_monitoramento(url):
-
-    if not isinstance(url, str):
-
-        return False, "URL inválida."
-
-
-    url = url.strip()
-
-
-    if len(url) > 2048:
-
-        return False, "A URL é muito longa."
-
-
-    try:
-
-        partes = urlparse(
-            url
-        )
-
+        usuario = buscar_usuario_por_id(usuario_id)
     except Exception:
+        usuario = None
 
-        return False, "URL inválida."
+    if not usuario:
+        session.clear()
+        return None
 
+    if isinstance(usuario, dict):
 
-    if partes.scheme not in (
-        "http",
-        "https"
-    ):
+        ativo = usuario.get("ativo", 1)
 
-        return (
-            False,
-            "A URL deve começar com http:// ou https://"
-        )
+        if ativo in (False, 0, "0"):
+            session.clear()
+            return None
 
+    return usuario
 
-    if not partes.hostname:
-
-        return (
-            False,
-            "A URL não possui um domínio válido."
-        )
-
-
-    hostname = partes.hostname.strip().lower()
-
-
-    # --------------------------------------------------------
-    # VALIDAR PORTA
-    # --------------------------------------------------------
-
-    try:
-
-        porta = partes.port
-
-    except ValueError:
-
-        return (
-            False,
-            "A porta informada na URL é inválida."
-        )
-
-
-    if porta is not None:
-
-        if porta < 1 or porta > 65535:
-
-            return (
-                False,
-                "A porta informada é inválida."
-            )
-
-
-    # --------------------------------------------------------
-    # ENDEREÇOS LOCAIS
-    # --------------------------------------------------------
-
-    if hostname in (
-        "localhost",
-        "localhost.localdomain"
-    ):
-
-        return (
-            False,
-            "Este endereço não pode ser monitorado."
-        )
-
-
-    if hostname.endswith(
-        ".local"
-    ):
-
-        return (
-            False,
-            "Domínios locais não podem ser monitorados."
-        )
-
-
-    if hostname == "metadata.google.internal":
-
-        return (
-            False,
-            "Este endereço não pode ser monitorado."
-        )
-
-
-    # --------------------------------------------------------
-    # SE FOR IP DIRETO
-    # --------------------------------------------------------
-
-    try:
-
-        endereco_ip = ipaddress.ip_address(
-            hostname
-        )
-
-
-        if not ip_e_permitido(
-            endereco_ip
-        ):
-
-            return (
-                False,
-                "Endereços de rede interna não podem ser monitorados."
-            )
-
-
-        return True, None
-
-
-    except ValueError:
-
-        pass
-
-
-    # --------------------------------------------------------
-    # SE FOR DOMÍNIO
-    # --------------------------------------------------------
-
-    try:
-
-        resolver_enderecos_publicos(
-            hostname
-        )
-
-
-    except requests.exceptions.RequestException:
-
-        return (
-            False,
-            "Não foi possível validar o domínio agora."
-        )
-
-
-    except ValueError as erro:
-
-        return (
-            False,
-            str(erro)
-        )
-
-
-    except Exception as erro:
-
-        print(
-            f"❌ Erro ao validar domínio {hostname}: {erro}"
-        )
-
-        return (
-            False,
-            "Não foi possível validar a URL."
-        )
-
-
-    return True, None
-
-
-# ============================================================
-# DECORATOR LOGIN
-# ============================================================
 
 def login_required(func):
+    """
+    Exige usuário autenticado.
+    """
 
     @wraps(func)
     def wrapper(*args, **kwargs):
 
         usuario = usuario_logado()
 
-
         if not usuario:
 
-            if request.path.startswith(
-                "/api/"
-            ):
+            if request.path.startswith("/api/") or request.is_json:
+                return jsonify({
+                    "sucesso": False,
+                    "erro": "Autenticação necessária."
+                }), 401
 
-                return resposta_erro_api(
-                    "Não autenticado.",
-                    401
-                )
+            return redirect(url_for("login"))
 
-
-            return redirect(
-                url_for("login")
-            )
-
-
-        return func(
-            *args,
-            **kwargs
-        )
-
+        return func(*args, **kwargs)
 
     return wrapper
 
-
-# ============================================================
-# DECORATOR ADMIN
-# ============================================================
 
 def admin_required(func):
+    """
+    Exige usuário autenticado com role admin.
+    """
 
     @wraps(func)
     def wrapper(*args, **kwargs):
 
         usuario = usuario_logado()
 
-
         if not usuario:
 
-            if request.path.startswith(
-                "/api/"
-            ):
+            if request.path.startswith("/api/") or request.is_json:
+                return jsonify({
+                    "sucesso": False,
+                    "erro": "Autenticação necessária."
+                }), 401
 
-                return resposta_erro_api(
-                    "Não autenticado.",
-                    401
-                )
+            return redirect(url_for("login"))
 
+        if isinstance(usuario, dict):
+            role = usuario.get("role", "")
+        else:
+            role = getattr(usuario, "role", "")
 
-            return redirect(
-                url_for("login")
-            )
+        if role != "admin":
+            return jsonify({
+                "sucesso": False,
+                "erro": "Acesso administrativo não autorizado."
+            }), 403
 
-
-        if usuario["role"] != "admin":
-
-            if request.path.startswith(
-                "/api/"
-            ):
-
-                return resposta_erro_api(
-                    "Acesso negado.",
-                    403
-                )
-
-
-            return redirect(
-                url_for("dashboard")
-            )
-
-
-        return func(
-            *args,
-            **kwargs
-        )
-
+        return func(*args, **kwargs)
 
     return wrapper
-
-
-# ============================================================
-# HOME
-# ============================================================
-
-@app.route("/")
-def index():
-
-    usuario = usuario_logado()
-
-
-    if usuario:
-
-        return redirect(
-            url_for("dashboard")
-        )
-
-
-    return redirect(
-        url_for("login")
-    )
 
 
 # ============================================================
 # LOGIN
 # ============================================================
 
-@app.route(
-    "/login",
-    methods=["GET", "POST"]
-)
+@app.route("/login", methods=["GET", "POST"])
 def login():
 
     if request.method == "GET":
 
-        usuario = usuario_logado()
+        if usuario_logado():
+            return redirect(url_for("dashboard"))
 
+        obter_token_csrf()
 
-        if usuario:
+        return render_template("login.html")
 
-            return redirect(
-                url_for("dashboard")
-            )
+    dados = request.get_json(silent=True)
 
+    if not isinstance(dados, dict):
+        dados = request.form.to_dict()
 
-        return render_template(
-            "login.html"
-        )
+    email = str(
+        dados.get("email", "")
+    ).strip().lower()
 
-
-    dados = request.get_json(
-        silent=True
+    senha = str(
+        dados.get("senha", "")
     )
-
-
-    if dados:
-
-        email = (
-            dados.get("email")
-            or ""
-        ).strip().lower()
-
-
-        senha = (
-            dados.get("senha")
-            or ""
-        )
-
-
-    else:
-
-        email = (
-            request.form.get("email")
-            or ""
-        ).strip().lower()
-
-
-        senha = (
-            request.form.get("senha")
-            or ""
-        )
-
 
     if not email or not senha:
 
-        return resposta_erro_api(
-            "Informe email e senha.",
-            400
-        )
+        if request.is_json:
+            return jsonify({
+                "sucesso": False,
+                "erro": "E-mail e senha são obrigatórios."
+            }), 400
 
+        return render_template(
+            "login.html",
+            erro="E-mail e senha são obrigatórios."
+        ), 400
 
-    usuario = buscar_usuario_por_email(
-        email
-    )
+    try:
+        usuario = buscar_usuario_por_email(email)
 
+    except Exception as erro:
+
+        print(f"Erro ao buscar usuário: {erro}")
+        usuario = None
 
     if not usuario:
 
-        return resposta_erro_api(
-            "Email ou senha inválidos.",
-            401
-        )
-
-
-    if not usuario["ativo"]:
-
-        return resposta_erro_api(
-            "Email ou senha inválidos.",
-            401
-        )
-
-
-    if not check_password_hash(
-        usuario["senha"],
-        senha
-    ):
-
-        return resposta_erro_api(
-            "Email ou senha inválidos.",
-            401
-        )
-
-
-    session.clear()
-
-
-    session.permanent = True
-
-
-    session["csrf_token"] = secrets.token_urlsafe(32)
-
-
-    session["usuario_id"] = usuario["id"]
-
-
-    session["usuario_nome"] = usuario["nome"]
-
-
-    session["usuario_role"] = usuario["role"]
-
-
-    registrar_log(
-        usuario["id"],
-        "LOGIN",
-        "Usuário realizou login."
-    )
-
-
-    return jsonify({
-
-        "sucesso": True,
-
-        "mensagem":
-            "Login realizado com sucesso.",
-
-        "usuario": {
-
-            "id":
-                usuario["id"],
-
-            "nome":
-                usuario["nome"],
-
-            "email":
-                usuario["email"],
-
-            "role":
-                usuario["role"]
-
-        }
-
-    })
-
-
-# ============================================================
-# REGISTRO
-# ============================================================
-
-@app.route(
-    "/register",
-    methods=["GET", "POST"]
-)
-def register():
-
-    if request.method == "GET":
-
-        usuario = usuario_logado()
-
-
-        if usuario:
-
-            return redirect(
-                url_for("dashboard")
-            )
-
+        if request.is_json:
+            return jsonify({
+                "sucesso": False,
+                "erro": "E-mail ou senha inválidos."
+            }), 401
 
         return render_template(
-            "register.html"
-        )
+            "login.html",
+            erro="E-mail ou senha inválidos."
+        ), 401
 
+    if isinstance(usuario, dict):
 
-    dados = request.get_json(
-        silent=True
-    ) or {}
-
-
-    if dados:
-
-        nome = (
-            dados.get("nome")
-            or ""
-        ).strip()
-
-
-        email = (
-            dados.get("email")
-            or ""
-        ).strip().lower()
-
-
-        senha = (
-            dados.get("senha")
-            or ""
-        )
-
+        usuario_id = usuario.get("id")
+        usuario_nome = usuario.get("nome", "")
+        usuario_email = usuario.get("email", "")
+        usuario_role = usuario.get("role", "user")
+        usuario_ativo = usuario.get("ativo", 1)
+        senha_hash = usuario.get("senha_hash") or usuario.get("senha")
 
     else:
 
-        nome = (
-            request.form.get("nome")
-            or ""
-        ).strip()
-
-
-        email = (
-            request.form.get("email")
-            or ""
-        ).strip().lower()
-
-
-        senha = (
-            request.form.get("senha")
-            or ""
+        usuario_id = usuario["id"]
+        usuario_nome = usuario["nome"]
+        usuario_email = usuario["email"]
+        usuario_role = usuario["role"]
+        usuario_ativo = (
+            usuario["ativo"]
+            if "ativo" in usuario.keys()
+            else 1
+        )
+        senha_hash = (
+            usuario["senha_hash"]
+            if "senha_hash" in usuario.keys()
+            else usuario["senha"]
         )
 
+    if usuario_ativo in (False, 0, "0"):
 
-    if not nome:
+        if request.is_json:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Usuário inativo."
+            }), 403
 
-        return resposta_erro_api(
-            "Informe seu nome.",
-            400
-        )
+        return render_template(
+            "login.html",
+            erro="Usuário inativo."
+        ), 403
 
+    senha_valida = False
 
-    if len(nome) > 120:
+    if senha_hash:
 
-        return resposta_erro_api(
-            "O nome é muito longo.",
-            400
-        )
+        try:
 
+            senha_valida = check_password_hash(
+                senha_hash,
+                senha
+            )
 
-    if not email:
+        except Exception:
 
-        return resposta_erro_api(
-            "Informe seu email.",
-            400
-        )
+            senha_valida = False
 
+    # Compatibilidade com senha antiga.
+    if not senha_valida and senha_hash == senha:
+        senha_valida = True
 
-    if len(email) > 254 or "@" not in email:
+    if not senha_valida:
 
-        return resposta_erro_api(
-            "Informe um email válido.",
-            400
-        )
+        if request.is_json:
+            return jsonify({
+                "sucesso": False,
+                "erro": "E-mail ou senha inválidos."
+            }), 401
 
+        return render_template(
+            "login.html",
+            erro="E-mail ou senha inválidos."
+        ), 401
 
-    if not senha:
+    # ========================================================
+    # CRIAR SESSÃO
+    # ========================================================
 
-        return resposta_erro_api(
-            "Informe sua senha.",
-            400
-        )
+    session.clear()
 
+    session.permanent = True
 
-    if len(senha) < 8:
+    session["csrf_token"] = secrets.token_urlsafe(32)
+    session["usuario_id"] = usuario_id
+    session["usuario_nome"] = usuario_nome
+    session["usuario_email"] = usuario_email
+    session["usuario_role"] = usuario_role
 
-        return resposta_erro_api(
-            "A senha deve possuir pelo menos 8 caracteres.",
-            400
-        )
-
-
-    if len(senha) > 128:
-
-        return resposta_erro_api(
-            "A senha é muito longa.",
-            400
-        )
-
-
-    existente = buscar_usuario_por_email(
-        email
-    )
-
-
-    if existente:
-
-        return resposta_erro_api(
-            "Este email já está cadastrado.",
-            409
-        )
-
+    # ========================================================
+    # AUDITORIA
+    # ========================================================
 
     try:
 
-        usuario_id = criar_usuario(
-            nome,
-            email,
-            senha
+        registrar_auditoria(
+            usuario_id=usuario_id,
+            acao="LOGIN",
+            detalhes=f"Login realizado para {usuario_email}"
         )
-
 
     except Exception as erro:
 
         print(
-            f"❌ Erro ao criar usuário: {erro}"
+            f"Aviso: não foi possível registrar auditoria do login: {erro}"
         )
 
+    # ========================================================
+    # RESPOSTA
+    # ========================================================
 
-        return resposta_erro_api(
-            "Não foi possível criar o usuário.",
-            500
-        )
+    resposta = {
+        "sucesso": True,
+        "mensagem": "Login realizado com sucesso.",
+        "redirect": url_for("dashboard"),
+        "csrf_token": session["csrf_token"],
+        "usuario": {
+            "id": usuario_id,
+            "nome": usuario_nome,
+            "email": usuario_email,
+            "role": usuario_role,
+        }
+    }
 
+    if request.is_json:
+        return jsonify(resposta), 200
 
-    registrar_log(
-        usuario_id,
-        "REGISTRO",
-        "Novo usuário criado."
+    return redirect(
+        url_for("dashboard")
     )
 
 
-    return jsonify({
+# ============================================================
+# CADASTRO
+# ============================================================
 
+@app.route("/register", methods=["GET", "POST"])
+def register():
+
+    if request.method == "GET":
+
+        if usuario_logado():
+            return redirect(url_for("dashboard"))
+
+        obter_token_csrf()
+
+        return render_template("register.html")
+
+    dados = request.get_json(silent=True)
+
+    if not isinstance(dados, dict):
+        dados = request.form.to_dict()
+
+    nome = str(
+        dados.get("nome", "")
+    ).strip()
+
+    email = str(
+        dados.get("email", "")
+    ).strip().lower()
+
+    senha = str(
+        dados.get("senha", "")
+    )
+
+    if not nome or not email or not senha:
+
+        resposta = {
+            "sucesso": False,
+            "erro": "Nome, e-mail e senha são obrigatórios."
+        }
+
+        if request.is_json:
+            return jsonify(resposta), 400
+
+        return render_template(
+            "register.html",
+            erro=resposta["erro"]
+        ), 400
+
+    if len(senha) < 6:
+
+        resposta = {
+            "sucesso": False,
+            "erro": "A senha deve possuir pelo menos 6 caracteres."
+        }
+
+        if request.is_json:
+            return jsonify(resposta), 400
+
+        return render_template(
+            "register.html",
+            erro=resposta["erro"]
+        ), 400
+
+    try:
+
+        usuario_existente = buscar_usuario_por_email(email)
+
+    except Exception as erro:
+
+        print(
+            f"Erro ao verificar usuário: {erro}"
+        )
+
+        usuario_existente = None
+
+    if usuario_existente:
+
+        resposta = {
+            "sucesso": False,
+            "erro": "E-mail já cadastrado."
+        }
+
+        if request.is_json:
+            return jsonify(resposta), 409
+
+        return render_template(
+            "register.html",
+            erro=resposta["erro"]
+        ), 409
+
+    senha_hash = generate_password_hash(senha)
+
+    try:
+
+        usuario_id = criar_usuario(
+            nome=nome,
+            email=email,
+            senha_hash=senha_hash
+        )
+
+    except TypeError:
+
+        usuario_id = criar_usuario(
+            nome,
+            email,
+            senha_hash
+        )
+
+    except Exception as erro:
+
+        print(
+            f"Erro ao criar usuário: {erro}"
+        )
+
+        resposta = {
+            "sucesso": False,
+            "erro": "Não foi possível criar o usuário."
+        }
+
+        if request.is_json:
+            return jsonify(resposta), 500
+
+        return render_template(
+            "register.html",
+            erro=resposta["erro"]
+        ), 500
+
+    session.clear()
+
+    session.permanent = True
+
+    session["csrf_token"] = secrets.token_urlsafe(32)
+    session["usuario_id"] = usuario_id
+    session["usuario_nome"] = nome
+    session["usuario_email"] = email
+    session["usuario_role"] = "user"
+
+    try:
+
+        registrar_auditoria(
+            usuario_id=usuario_id,
+            acao="REGISTER",
+            detalhes=f"Novo usuário cadastrado: {email}"
+        )
+
+    except Exception as erro:
+
+        print(
+            f"Aviso: não foi possível registrar auditoria do cadastro: {erro}"
+        )
+
+    resposta = {
         "sucesso": True,
+        "mensagem": "Cadastro realizado com sucesso.",
+        "redirect": url_for("dashboard"),
+        "csrf_token": session["csrf_token"],
+        "usuario": {
+            "id": usuario_id,
+            "nome": nome,
+            "email": email,
+            "role": "user",
+        }
+    }
 
-        "mensagem":
-            "Usuário criado com sucesso.",
+    if request.is_json:
+        return jsonify(resposta), 201
 
-        "usuario_id":
-            usuario_id
-
-    }), 201
+    return redirect(
+        url_for("dashboard")
+    )
 
 
 # ============================================================
 # LOGOUT
 # ============================================================
 
-@app.route(
-    "/logout",
-    methods=["GET", "POST"]
-)
+@app.route("/logout", methods=["GET", "POST"])
 def logout():
 
-    usuario = usuario_logado()
-
-
-    if usuario:
-
-        registrar_log(
-            usuario["id"],
-            "LOGOUT",
-            "Usuário encerrou a sessão."
-        )
-
-
-    session.clear()
-
+    usuario_id = session.get("usuario_id")
 
     if request.method == "POST":
 
+        try:
+
+            if usuario_id:
+
+                registrar_auditoria(
+                    usuario_id=usuario_id,
+                    acao="LOGOUT",
+                    detalhes="Logout realizado"
+                )
+
+        except Exception as erro:
+
+            print(
+                f"Aviso: erro ao registrar logout: {erro}"
+            )
+
+        session.clear()
+
         return jsonify({
-
-            "sucesso": True
-
+            "sucesso": True,
+            "mensagem": "Logout realizado.",
+            "redirect": url_for("login")
         })
 
+    session.clear()
 
     return redirect(
         url_for("login")
     )
+
+
+# ============================================================
+# PÁGINA PRINCIPAL
+# ============================================================
+
+@app.route("/")
+def index():
+
+    if usuario_logado():
+        return redirect(url_for("dashboard"))
+
+    return redirect(url_for("login"))
 
 
 # ============================================================
@@ -1161,160 +700,137 @@ def logout():
 @login_required
 def dashboard():
 
+    usuario = usuario_logado()
+
     return render_template(
-        "dashboard.html"
+        "dashboard.html",
+        usuario=usuario
     )
 
 
 # ============================================================
-# API - TOKEN CSRF
+# TOKEN CSRF
 # ============================================================
 
-@app.route(
-    "/api/csrf-token",
-    methods=["GET"]
-)
+@app.route("/api/csrf-token", methods=["GET"])
 @login_required
-def api_csrf_token():
-
-    token = obter_token_csrf()
+def csrf_token():
 
     return jsonify({
-
-        "csrf_token":
-            token
-
+        "sucesso": True,
+        "csrf_token": obter_token_csrf()
     })
 
 
 # ============================================================
-# API - USUÁRIO ATUAL
+# STATUS DA API
 # ============================================================
 
-@app.route("/api/me")
-@login_required
-def api_me():
-
-    usuario = usuario_logado()
-
+@app.route("/health", methods=["GET"])
+def health():
 
     return jsonify({
+        "status": "healthy"
+    })
 
-        "id":
-            usuario["id"],
 
-        "nome":
-            usuario["nome"],
+@app.route("/status", methods=["GET"])
+def status():
 
-        "email":
-            usuario["email"],
-
-        "role":
-            usuario["role"],
-
-        "ativo":
-            usuario["ativo"]
-
+    return jsonify({
+        "projeto": "Cloud Security Monitor",
+        "status": "online"
     })
 
 
 # ============================================================
-# SITES DO USUÁRIO
+# SITES
 # ============================================================
 
-@app.route(
-    "/api/sites",
-    methods=["GET"]
-)
+@app.route("/api/sites", methods=["GET"])
 @login_required
 def api_listar_sites():
 
     usuario = usuario_logado()
 
+    try:
 
-    sites = listar_sites(
-        usuario["id"]
-    )
+        sites = listar_sites(
+            usuario["id"]
+        )
+
+    except TypeError:
+
+        sites = listar_sites()
+
+        sites = [
+            site
+            for site in sites
+            if (
+                site.get("usuario_id") == usuario["id"]
+                if isinstance(site, dict)
+                else True
+            )
+        ]
+
+    return jsonify({
+        "sucesso": True,
+        "sites": sites
+    })
 
 
-    return jsonify([
-
-        dict(site)
-
-        for site in sites
-
-    ])
-
-
-# ============================================================
-# CRIAR SITE
-# ============================================================
-
-@app.route(
-    "/api/sites",
-    methods=["POST"]
-)
+@app.route("/api/sites", methods=["POST"])
 @login_required
 def api_criar_site():
 
     usuario = usuario_logado()
 
+    dados = request.get_json(silent=True)
 
-    dados = request.get_json(
-        silent=True
-    ) or {}
+    if not isinstance(dados, dict):
+        dados = request.form.to_dict()
 
-
-    nome = (
-        dados.get("nome")
-        or ""
+    nome = str(
+        dados.get("nome", "")
     ).strip()
 
-
-    url = (
-        dados.get("url")
-        or ""
+    url = str(
+        dados.get("url", "")
     ).strip()
-
 
     if not nome:
 
-        return resposta_erro_api(
-            "Informe o nome do site.",
-            400
-        )
-
-
-    if len(nome) > 120:
-
-        return resposta_erro_api(
-            "O nome do site é muito longo.",
-            400
-        )
-
+        return jsonify({
+            "sucesso": False,
+            "erro": "Nome do site é obrigatório."
+        }), 400
 
     if not url:
 
-        return resposta_erro_api(
-            "Informe a URL do site.",
-            400
-        )
+        return jsonify({
+            "sucesso": False,
+            "erro": "URL do site é obrigatória."
+        }), 400
 
+    if not (
+        url.startswith("http://")
+        or url.startswith("https://")
+    ):
 
-    valida, erro = validar_url_monitoramento(
-        url
-    )
-
-
-    if not valida:
-
-        return resposta_erro_api(
-            erro,
-            400
-        )
-
+        return jsonify({
+            "sucesso": False,
+            "erro": "A URL deve começar com http:// ou https://."
+        }), 400
 
     try:
+
+        site_id = criar_site(
+            usuario_id=usuario["id"],
+            nome=nome,
+            url=url
+        )
+
+    except TypeError:
 
         site_id = criar_site(
             usuario["id"],
@@ -1322,354 +838,170 @@ def api_criar_site():
             url
         )
 
+    except Exception as erro:
+
+        print(
+            f"Erro ao criar site: {erro}"
+        )
+
+        return jsonify({
+            "sucesso": False,
+            "erro": "Não foi possível adicionar o site."
+        }), 500
+
+    try:
+
+        registrar_auditoria(
+            usuario_id=usuario["id"],
+            acao="SITE_CRIADO",
+            detalhes=f"Site criado: {nome} - {url}"
+        )
 
     except Exception as erro:
 
         print(
-            f"❌ Erro ao criar site: {erro}"
+            f"Aviso: não foi possível registrar auditoria do site: {erro}"
         )
-
-
-        return resposta_erro_api(
-            "Não foi possível cadastrar o site.",
-            500
-        )
-
-
-    registrar_log(
-        usuario["id"],
-        "CRIAR_SITE",
-        f"Site criado: {nome}"
-    )
-
 
     return jsonify({
-
         "sucesso": True,
-
-        "site_id":
-            site_id,
-
-        "mensagem":
-            "Site cadastrado com sucesso."
-
+        "mensagem": "Site adicionado com sucesso.",
+        "site_id": site_id
     }), 201
 
 
-# ============================================================
-# BUSCAR SITE
-# ============================================================
-
-@app.route(
-    "/api/sites/<int:site_id>",
-    methods=["GET"]
-)
+@app.route("/api/sites/<int:site_id>", methods=["GET"])
 @login_required
-def api_buscar_site(site_id):
+def api_obter_site(site_id):
 
     usuario = usuario_logado()
-
 
     site = buscar_site(
         site_id,
         usuario["id"]
     )
 
-
     if not site:
 
-        return resposta_erro_api(
-            "Site não encontrado.",
-            404
-        )
+        return jsonify({
+            "sucesso": False,
+            "erro": "Site não encontrado."
+        }), 404
+
+    return jsonify({
+        "sucesso": True,
+        "site": site
+    })
 
 
-    return jsonify(
-        dict(site)
-    )
-
-
-# ============================================================
-# STATUS DO SITE
-# ============================================================
-
-@app.route(
-    "/api/sites/<int:site_id>/status",
-    methods=["GET"]
-)
-@login_required
-def api_status_site(site_id):
-
-    usuario = usuario_logado()
-
-
-    site = buscar_site(
-        site_id,
-        usuario["id"]
-    )
-
-
-    if not site:
-
-        return resposta_erro_api(
-            "Site não encontrado.",
-            404
-        )
-
-
-    registros = listar_monitoramentos(
-        site_id
-    )
-
-
-    ultimo = None
-
-
-    if registros:
-
-        ultimo = dict(
-            registros[0]
-        )
-
-
-    resposta = {
-
-        "site_id":
-            site["id"],
-
-        "nome":
-            site["nome"],
-
-        "url":
-            site["url"],
-
-        "status":
-            "AGUARDANDO",
-
-        "codigo_http":
-            None,
-
-        "tempo_resposta":
-            None,
-
-        "data_hora":
-            None
-
-    }
-
-
-    if ultimo:
-
-        resposta.update({
-
-            "status":
-                ultimo.get(
-                    "status"
-                ),
-
-            "codigo_http":
-                ultimo.get(
-                    "codigo_http"
-                ),
-
-            "tempo_resposta":
-                ultimo.get(
-                    "tempo_resposta"
-                ),
-
-            "data_hora":
-                ultimo.get(
-                    "data_hora"
-                )
-
-        })
-
-
-    return jsonify(
-        resposta
-    )
-
-
-# ============================================================
-# EXCLUIR SITE
-# ============================================================
-
-@app.route(
-    "/api/sites/<int:site_id>",
-    methods=["DELETE"]
-)
+@app.route("/api/sites/<int:site_id>", methods=["DELETE"])
 @login_required
 def api_excluir_site(site_id):
 
     usuario = usuario_logado()
 
-
     site = buscar_site(
         site_id,
         usuario["id"]
     )
 
-
     if not site:
 
-        return resposta_erro_api(
-            "Site não encontrado.",
-            404
+        return jsonify({
+            "sucesso": False,
+            "erro": "Site não encontrado."
+        }), 404
+
+    try:
+
+        excluir_site(
+            site_id,
+            usuario["id"]
         )
 
+    except TypeError:
 
-    excluido = excluir_site(
-        site_id,
-        usuario["id"]
-    )
-
-
-    if not excluido:
-
-        return resposta_erro_api(
-            "Não foi possível excluir o site.",
-            500
+        excluir_site(
+            site_id
         )
 
+    except Exception as erro:
 
-    registrar_log(
-        usuario["id"],
-        "EXCLUIR_SITE",
-        f"Site excluído: {site['nome']}"
-    )
+        print(
+            f"Erro ao excluir site: {erro}"
+        )
 
+        return jsonify({
+            "sucesso": False,
+            "erro": "Não foi possível excluir o site."
+        }), 500
+
+    try:
+
+        registrar_auditoria(
+            usuario_id=usuario["id"],
+            acao="SITE_EXCLUIDO",
+            detalhes=f"Site excluído: {site_id}"
+        )
+
+    except Exception as erro:
+
+        print(
+            f"Aviso: não foi possível registrar auditoria: {erro}"
+        )
 
     return jsonify({
-
         "sucesso": True,
-
-        "mensagem":
-            "Site excluído com sucesso."
-
+        "mensagem": "Site excluído com sucesso."
     })
 
 
 # ============================================================
-# HISTÓRICO DE MONITORAMENTO
+# MONITORAMENTOS
 # ============================================================
 
 @app.route(
-    "/api/sites/<int:site_id>/monitoramentos"
+    "/api/sites/<int:site_id>/monitoramentos",
+    methods=["GET"]
 )
 @login_required
 def api_monitoramentos(site_id):
 
     usuario = usuario_logado()
 
-
     site = buscar_site(
         site_id,
         usuario["id"]
     )
 
-
     if not site:
 
-        return resposta_erro_api(
-            "Site não encontrado.",
-            404
+        return jsonify({
+            "sucesso": False,
+            "erro": "Site não encontrado."
+        }), 404
+
+    try:
+
+        monitoramentos = listar_monitoramentos(
+            site_id,
+            usuario["id"]
         )
 
+    except TypeError:
 
-    registros = listar_monitoramentos(
-        site_id
-    )
-
-
-    return jsonify([
-
-        dict(registro)
-
-        for registro in registros
-
-    ])
-
-
-# ============================================================
-# MÉTRICAS
-# ============================================================
-
-@app.route(
-    "/api/sites/<int:site_id>/metrics"
-)
-@login_required
-def api_metrics(site_id):
-
-    usuario = usuario_logado()
-
-
-    site = buscar_site(
-        site_id,
-        usuario["id"]
-    )
-
-
-    if not site:
-
-        return resposta_erro_api(
-            "Site não encontrado.",
-            404
+        monitoramentos = listar_monitoramentos(
+            site_id
         )
 
-
-    metricas = obter_metricas(
-        site_id
-    )
-
-
-    return jsonify(
-        metricas
-    )
+    return jsonify({
+        "sucesso": True,
+        "monitoramentos": monitoramentos
+    })
 
 
 # ============================================================
-# SSL
-# ============================================================
-
-@app.route(
-    "/api/sites/<int:site_id>/ssl"
-)
-@login_required
-def api_ssl(site_id):
-
-    usuario = usuario_logado()
-
-
-    site = buscar_site(
-        site_id,
-        usuario["id"]
-    )
-
-
-    if not site:
-
-        return resposta_erro_api(
-            "Site não encontrado.",
-            404
-        )
-
-
-    registros = listar_ssl(
-        site_id
-    )
-
-
-    return jsonify([
-
-        dict(registro)
-
-        for registro in registros
-
-    ])
-
-
-# ============================================================
-# INCIDENTES DO USUÁRIO
+# INCIDENTES
 # ============================================================
 
 @app.route(
@@ -1681,169 +1013,117 @@ def api_incidentes(site_id):
 
     usuario = usuario_logado()
 
+    site = buscar_site(
+        site_id,
+        usuario["id"]
+    )
+
+    if not site:
+
+        return jsonify({
+            "sucesso": False,
+            "erro": "Site não encontrado."
+        }), 404
+
+    try:
+
+        incidentes = listar_incidentes(
+            site_id
+        )
+
+    except TypeError:
+
+        incidentes = listar_incidentes()
+
+    return jsonify({
+        "sucesso": True,
+        "incidentes": incidentes
+    })
+
+
+# ============================================================
+# ALERTAS SSL
+# ============================================================
+
+@app.route(
+    "/api/sites/<int:site_id>/ssl-alertas",
+    methods=["GET"]
+)
+@login_required
+def api_ssl_alertas(site_id):
+
+    usuario = usuario_logado()
 
     site = buscar_site(
         site_id,
         usuario["id"]
     )
 
-
     if not site:
 
-        return resposta_erro_api(
-            "Site não encontrado.",
-            404
+        return jsonify({
+            "sucesso": False,
+            "erro": "Site não encontrado."
+        }), 404
+
+    try:
+
+        alertas = listar_alertas_ssl(
+            site_id
         )
 
+    except TypeError:
 
-    incidentes = listar_incidentes(
-        site_id=site_id,
-        limite=100
-    )
+        alertas = listar_alertas_ssl()
 
-
-    return jsonify([
-
-        dict(incidente)
-
-        for incidente in incidentes
-
-    ])
+    return jsonify({
+        "sucesso": True,
+        "ssl_alertas": alertas
+    })
 
 
 # ============================================================
-# TODOS OS INCIDENTES DO USUÁRIO
+# MÉTRICAS
 # ============================================================
 
 @app.route(
-    "/api/incidentes",
+    "/api/sites/<int:site_id>/metricas",
     methods=["GET"]
 )
 @login_required
-def api_todos_incidentes_usuario():
+def api_metricas(site_id):
 
     usuario = usuario_logado()
 
-
-    sites = listar_sites(
+    site = buscar_site(
+        site_id,
         usuario["id"]
     )
 
+    if not site:
 
-    resultado = []
+        return jsonify({
+            "sucesso": False,
+            "erro": "Site não encontrado."
+        }), 404
 
-
-    for site in sites:
-
-        incidentes = listar_incidentes(
-            site_id=site["id"],
-            limite=100
-        )
-
-
-        for incidente in incidentes:
-
-            item = dict(
-                incidente
-            )
-
-
-            item["site_id"] = site["id"]
-
-            item["site_nome"] = site["nome"]
-
-            item["site_url"] = site["url"]
-
-
-            resultado.append(
-                item
-            )
-
-
-    return jsonify(
-        resultado
-    )
-
-
-# ============================================================
-# STATUS DO SERVIÇO
-# ============================================================
-
-@app.route("/status")
-def status():
-
-    return jsonify({
-
-        "status":
-            "online",
-
-        "servico":
-            "Cloud Security Monitor"
-
-    })
-
-
-# ============================================================
-# HEALTH CHECK
-# ============================================================
-
-@app.route("/health")
-def health():
-
-    return jsonify({
-
-        "status":
-            "healthy"
-
-    })
-
-
-# ============================================================
-# MÉTRICAS GERAIS
-# ============================================================
-
-@app.route("/metrics")
-@login_required
-def metrics():
-
-    usuario = usuario_logado()
-
-
-    sites = listar_sites(
-        usuario["id"]
-    )
-
-
-    resultado = []
-
-
-    for site in sites:
+    try:
 
         metricas = obter_metricas(
-            site["id"]
+            site_id
         )
 
+    except TypeError:
 
-        resultado.append({
+        metricas = obter_metricas(
+            site_id,
+            usuario["id"]
+        )
 
-            "site":
-                site["nome"],
-
-            "site_id":
-                site["id"],
-
-            "url":
-                site["url"],
-
-            "metricas":
-                metricas
-
-        })
-
-
-    return jsonify(
-        resultado
-    )
+    return jsonify({
+        "sucesso": True,
+        "metricas": metricas
+    })
 
 
 # ============================================================
@@ -1852,580 +1132,235 @@ def metrics():
 
 @app.route("/admin")
 @admin_required
-def admin_dashboard():
-
-    return render_template(
-        "admin.html"
-    )
-
-
-# ============================================================
-# ADMIN - USUÁRIOS
-# ============================================================
-
-@app.route(
-    "/admin/users",
-    methods=["GET"]
-)
-@admin_required
-def admin_users():
-
-    usuarios = listar_usuarios()
-
-
-    return jsonify([
-
-        dict(usuario)
-
-        for usuario in usuarios
-
-    ])
-
-
-# ============================================================
-# ADMIN - ALTERAR ROLE
-# ============================================================
-
-@app.route(
-    "/admin/users/<int:usuario_id>/role",
-    methods=["POST", "PUT"]
-)
-@admin_required
-def admin_alterar_role(usuario_id):
-
-    admin = usuario_logado()
-
-
-    dados = request.get_json(
-        silent=True
-    ) or {}
-
-
-    role = dados.get(
-        "role"
-    )
-
-
-    if role not in (
-        "admin",
-        "user"
-    ):
-
-        return resposta_erro_api(
-            "Role inválida.",
-            400
-        )
-
-
-    if usuario_id == admin["id"]:
-
-        return resposta_erro_api(
-            "Você não pode alterar sua própria função.",
-            400
-        )
-
-
-    usuario = buscar_usuario_por_id(
-        usuario_id
-    )
-
-
-    if not usuario:
-
-        return resposta_erro_api(
-            "Usuário não encontrado.",
-            404
-        )
-
-
-    try:
-
-        alterado = alterar_usuario_admin(
-            usuario_id,
-            role=role
-        )
-
-
-    except ValueError as erro:
-
-        return resposta_erro_api(
-            str(erro),
-            400
-        )
-
-
-    if not alterado:
-
-        return resposta_erro_api(
-            "Nenhuma alteração realizada.",
-            400
-        )
-
-
-    registrar_log(
-        admin["id"],
-        "ALTERAR_ROLE",
-        f"Usuário {usuario['email']} alterado para {role}."
-    )
-
-
-    return jsonify({
-
-        "sucesso": True,
-
-        "mensagem":
-            "Função alterada com sucesso."
-
-    })
-
-
-# ============================================================
-# ADMIN - BLOQUEAR / ATIVAR
-# ============================================================
-
-@app.route(
-    "/admin/users/<int:usuario_id>/status",
-    methods=["POST", "PUT"]
-)
-@admin_required
-def admin_alterar_status(usuario_id):
-
-    admin = usuario_logado()
-
-
-    dados = request.get_json(
-        silent=True
-    ) or {}
-
-
-    ativo = dados.get(
-        "ativo"
-    )
-
-
-    if ativo not in (
-        0,
-        1,
-        True,
-        False
-    ):
-
-        return resposta_erro_api(
-            "Status inválido.",
-            400
-        )
-
-
-    ativo = int(
-        ativo
-    )
-
-
-    if usuario_id == admin["id"]:
-
-        return resposta_erro_api(
-            "Você não pode bloquear sua própria conta.",
-            400
-        )
-
-
-    usuario = buscar_usuario_por_id(
-        usuario_id
-    )
-
-
-    if not usuario:
-
-        return resposta_erro_api(
-            "Usuário não encontrado.",
-            404
-        )
-
-
-    try:
-
-        alterado = alterar_usuario_admin(
-            usuario_id,
-            ativo=ativo
-        )
-
-
-    except ValueError as erro:
-
-        return resposta_erro_api(
-            str(erro),
-            400
-        )
-
-
-    if not alterado:
-
-        return resposta_erro_api(
-            "Nenhuma alteração realizada.",
-            400
-        )
-
-
-    acao = (
-
-        "ATIVAR_USUARIO"
-
-        if ativo
-
-        else
-
-        "BLOQUEAR_USUARIO"
-
-    )
-
-
-    descricao = (
-
-        f"Usuário {usuario['email']} "
-
-        f"{'ativado' if ativo else 'bloqueado'}."
-
-    )
-
-
-    registrar_log(
-        admin["id"],
-        acao,
-        descricao
-    )
-
-
-    return jsonify({
-
-        "sucesso": True,
-
-        "mensagem":
-            descricao
-
-    })
-
-
-# ============================================================
-# ADMIN - SITES
-# ============================================================
-
-@app.route(
-    "/admin/sites",
-    methods=["GET"]
-)
-@admin_required
-def admin_sites():
-
-    sites = listar_todos_sites_admin()
-
-
-    return jsonify([
-
-        dict(site)
-
-        for site in sites
-
-    ])
-
-
-# ============================================================
-# ADMIN - HISTÓRICO SSL
-# ============================================================
-
-@app.route(
-    "/admin/ssl-history",
-    methods=["GET"]
-)
-@admin_required
-def admin_ssl_history():
-
-    registros = listar_todos_ssl_admin()
-
-
-    return jsonify([
-
-        dict(registro)
-
-        for registro in registros
-
-    ])
-
-
-# ============================================================
-# ADMIN - INCIDENTES
-# ============================================================
-
-@app.route(
-    "/admin/incidentes",
-    methods=["GET"]
-)
-@admin_required
-def admin_incidentes():
-
-    incidentes = listar_incidentes(
-        site_id=None,
-        limite=200
-    )
-
-
-    return jsonify([
-
-        dict(incidente)
-
-        for incidente in incidentes
-
-    ])
-
-
-# ============================================================
-# COMPATIBILIDADE
-# ============================================================
-
-@app.route(
-    "/admin/incidents",
-    methods=["GET"]
-)
-@admin_required
-def admin_incidents_compatibilidade():
-
-    incidentes = listar_incidentes(
-        site_id=None,
-        limite=200
-    )
-
-
-    return jsonify([
-
-        dict(incidente)
-
-        for incidente in incidentes
-
-    ])
-
-
-# ============================================================
-# ADMIN - AUDITORIA
-# ============================================================
-
-@app.route(
-    "/admin/audit-logs",
-    methods=["GET"]
-)
-@admin_required
-def admin_audit_logs():
-
-    logs = listar_auditoria()
-
-
-    return jsonify([
-
-        dict(log)
-
-        for log in logs
-
-    ])
-
-
-# ============================================================
-# DASHBOARD API
-# ============================================================
-
-@app.route(
-    "/api/dashboard"
-)
-@login_required
-def api_dashboard():
+def admin():
 
     usuario = usuario_logado()
 
-
-    sites = listar_sites(
-        usuario["id"]
+    return render_template(
+        "admin.html",
+        usuario=usuario
     )
 
 
-    dados = []
+@app.route(
+    "/admin/api/usuarios",
+    methods=["GET"]
+)
+@admin_required
+def admin_usuarios():
 
+    conexao = conectar()
 
-    for site in sites:
+    try:
 
-        metricas = obter_metricas(
-            site["id"]
-        )
+        cursor = conexao.cursor()
 
+        cursor.execute("""
+            SELECT
+                id,
+                nome,
+                email,
+                role,
+                ativo
+            FROM usuarios
+            ORDER BY id DESC
+        """)
 
-        dados.append({
+        usuarios = cursor.fetchall()
 
-            "id":
-                site["id"],
+        resultado = []
 
-            "nome":
-                site["nome"],
+        for usuario in usuarios:
 
-            "url":
-                site["url"],
+            if isinstance(usuario, dict):
 
-            "criado_em":
-                site["criado_em"],
+                resultado.append(
+                    dict(usuario)
+                )
 
-            "metricas":
-                metricas
+            else:
 
+                resultado.append({
+                    "id": usuario[0],
+                    "nome": usuario[1],
+                    "email": usuario[2],
+                    "role": usuario[3],
+                    "ativo": usuario[4],
+                })
+
+        return jsonify({
+            "sucesso": True,
+            "usuarios": resultado
         })
 
+    finally:
 
-    return jsonify(
-        dados
-    )
+        conexao.close()
 
 
 # ============================================================
-# HEADERS DE SEGURANÇA
+# AUDITORIA ADMIN
 # ============================================================
 
-@app.after_request
-def adicionar_headers_seguranca(
-    response
-):
+@app.route(
+    "/admin/api/auditoria",
+    methods=["GET"]
+)
+@admin_required
+def admin_auditoria():
 
-    response.headers[
-        "X-Content-Type-Options"
-    ] = "nosniff"
+    conexao = conectar()
 
+    try:
 
-    response.headers[
-        "X-Frame-Options"
-    ] = "SAMEORIGIN"
+        cursor = conexao.cursor()
 
+        cursor.execute("""
+            SELECT *
+            FROM auditoria
+            ORDER BY id DESC
+            LIMIT 500
+        """)
 
-    response.headers[
-        "Referrer-Policy"
-    ] = (
-        "strict-origin-when-cross-origin"
-    )
+        registros = cursor.fetchall()
 
+        resultado = []
 
-    response.headers[
-        "Permissions-Policy"
-    ] = (
-        "camera=(), microphone=(), geolocation=()"
-    )
+        for registro in registros:
 
+            if isinstance(registro, dict):
 
-    response.headers[
-        "X-XSS-Protection"
-    ] = "0"
+                resultado.append(
+                    dict(registro)
+                )
 
+            else:
 
-    # --------------------------------------------------------
-    # HSTS
-    # --------------------------------------------------------
-    #
-    # Só enviamos HSTS em produção.
-    # Com ProxyFix, request.is_secure pode reconhecer
-    # corretamente HTTPS atrás do Render.
-    #
+                try:
 
-    if PRODUCAO and request.is_secure:
+                    resultado.append(
+                        dict(registro)
+                    )
 
-        response.headers[
-            "Strict-Transport-Security"
-        ] = (
-            "max-age=31536000; "
-            "includeSubDomains"
-        )
+                except Exception:
 
+                    resultado.append({
+                        "dados": list(registro)
+                    })
 
-    return response
+        return jsonify({
+            "sucesso": True,
+            "auditoria": resultado
+        })
+
+    finally:
+
+        conexao.close()
 
 
 # ============================================================
 # TRATAMENTO DE ERROS
 # ============================================================
 
-@app.errorhandler(413)
-def erro_413(erro):
-
-    if request.path.startswith(
-        "/api/"
-    ):
-
-        return resposta_erro_api(
-            "Requisição muito grande.",
-            413
-        )
-
-
-    return (
-        "Requisição muito grande.",
-        413
-    )
-
-
 @app.errorhandler(404)
-def erro_404(erro):
+def pagina_nao_encontrada(erro):
 
-    if (
-        request.path.startswith("/api/")
-        or request.path.startswith("/admin/")
-    ):
+    if request.path.startswith("/api/"):
 
-        return resposta_erro_api(
-            "Recurso não encontrado.",
-            404
-        )
+        return jsonify({
+            "sucesso": False,
+            "erro": "Recurso não encontrado."
+        }), 404
 
-
-    return (
-        "Página não encontrada.",
-        404
-    )
+    return "Página não encontrada.", 404
 
 
 @app.errorhandler(500)
-def erro_500(erro):
+def erro_interno(erro):
 
     print(
-        f"❌ Erro interno: {erro}"
+        f"Erro interno: {erro}"
     )
 
+    if request.path.startswith("/api/"):
 
-    if (
-        request.path.startswith("/api/")
-        or request.path.startswith("/admin/")
-    ):
+        return jsonify({
+            "sucesso": False,
+            "erro": "Erro interno do servidor."
+        }), 500
 
-        return resposta_erro_api(
-            "Erro interno do servidor.",
-            500
-        )
-
-
-    return (
-        "Erro interno do servidor.",
-        500
-    )
+    return "Erro interno do servidor.", 500
 
 
 # ============================================================
-# EXECUÇÃO LOCAL
+# CABEÇALHOS DE SEGURANÇA
+# ============================================================
+
+@app.after_request
+def adicionar_headers_seguranca(response):
+
+    response.headers["X-Content-Type-Options"] = "nosniff"
+
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+
+    response.headers["Referrer-Policy"] = (
+        "strict-origin-when-cross-origin"
+    )
+
+    if PRODUCAO:
+
+        response.headers["Strict-Transport-Security"] = (
+            "max-age=31536000; includeSubDomains"
+        )
+
+    return response
+
+
+# ============================================================
+# INICIALIZAÇÃO
 # ============================================================
 
 if __name__ == "__main__":
 
-    iniciar_monitoramento_automatico()
+    print("=" * 60)
+    print("CLOUD SECURITY MONITOR")
+    print("=" * 60)
 
+    print(
+        "Banco:",
+        "PostgreSQL"
+        if getattr(database, "USANDO_POSTGRES", False)
+        else "SQLite"
+    )
 
-    port = int(
+    print(
+        "Ambiente:",
+        "PRODUÇÃO"
+        if PRODUCAO
+        else "DESENVOLVIMENTO"
+    )
+
+    print("=" * 60)
+
+    try:
+
+        iniciar_monitoramento_automatico()
+
+    except Exception as erro:
+
+        print(
+            f"Aviso: monitoramento automático não foi iniciado: {erro}"
+        )
+
+    porta = int(
         os.environ.get(
             "PORT",
             5000
         )
     )
 
-
     app.run(
         host="0.0.0.0",
-        port=port,
+        port=porta,
         debug=False
     )
