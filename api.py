@@ -28,6 +28,7 @@ from database import (
     listar_sites,
     excluir_site,
     listar_monitoramentos,
+    listar_ssl,
     registrar_auditoria,
 )
 
@@ -36,6 +37,7 @@ from ssl_alert_manager import listar_alertas_ssl
 from metrics import obter_metricas
 
 from scheduler import iniciar_monitoramento_automatico
+from billing import registrar_rotas as registrar_rotas_billing
 
 
 # ============================================================
@@ -164,6 +166,9 @@ def proteger_contra_csrf():
         ),
     )
 
+    if request.path == "/api/billing/webhook":
+        return None
+
     if not any(caminhos_protegidos):
         return None
 
@@ -272,6 +277,9 @@ def admin_required(func):
         return func(*args, **kwargs)
 
     return wrapper
+
+
+registrar_rotas_billing(app, login_required)
 
 
 # ============================================================
@@ -555,14 +563,12 @@ def register():
             erro=resposta["erro"]
         ), 409
 
-    senha_hash = generate_password_hash(senha)
-
     try:
 
         usuario_id = criar_usuario(
             nome=nome,
             email=email,
-            senha_hash=senha_hash
+            senha=senha
         )
 
     except TypeError:
@@ -570,7 +576,7 @@ def register():
         usuario_id = criar_usuario(
             nome,
             email,
-            senha_hash
+            senha
         )
 
     except Exception as erro:
@@ -709,6 +715,25 @@ def dashboard():
 
 
 # ============================================================
+# USUÁRIO AUTENTICADO
+# ============================================================
+
+@app.route("/api/me", methods=["GET"])
+@login_required
+def api_me():
+
+    usuario = usuario_logado()
+
+    return jsonify({
+        "id": usuario["id"],
+        "nome": usuario["nome"],
+        "email": usuario["email"],
+        "role": usuario.get("role", "user"),
+        "ativo": usuario.get("ativo", 1),
+    })
+
+
+# ============================================================
 # TOKEN CSRF
 # ============================================================
 
@@ -773,9 +798,32 @@ def api_listar_sites():
             )
         ]
 
+    resultado = []
+
+    for site in sites or []:
+        if isinstance(site, dict):
+            resultado.append({
+                "id": site.get("id"),
+                "usuario_id": site.get("usuario_id"),
+                "nome": site.get("nome"),
+                "url": site.get("url"),
+                "criado_em": site.get("criado_em"),
+            })
+        else:
+            try:
+                resultado.append({
+                    "id": site[0],
+                    "usuario_id": site[1],
+                    "nome": site[2],
+                    "url": site[3],
+                    "criado_em": site[4],
+                })
+            except (IndexError, TypeError, KeyError):
+                continue
+
     return jsonify({
         "sucesso": True,
-        "sites": sites
+        "sites": resultado
     })
 
 
@@ -1127,6 +1175,57 @@ def api_metricas(site_id):
 
 
 # ============================================================
+# COMPATIBILIDADE COM O DASHBOARD
+# ============================================================
+
+@app.route(
+    "/api/sites/<int:site_id>/metrics",
+    methods=["GET"]
+)
+@login_required
+def api_metrics_alias(site_id):
+
+    return api_metricas(site_id)
+
+
+@app.route(
+    "/api/sites/<int:site_id>/ssl",
+    methods=["GET"]
+)
+@login_required
+def api_ssl(site_id):
+
+    usuario = usuario_logado()
+
+    site = buscar_site(
+        site_id,
+        usuario["id"]
+    )
+
+    if not site:
+
+        return jsonify({
+            "sucesso": False,
+            "erro": "Site não encontrado."
+        }), 404
+
+    try:
+
+        registros = listar_ssl(
+            site_id
+        )
+
+    except TypeError:
+
+        registros = listar_ssl()
+
+    return jsonify({
+        "sucesso": True,
+        "ssl": registros
+    })
+
+
+# ============================================================
 # ADMIN
 # ============================================================
 
@@ -1162,7 +1261,7 @@ def admin_usuarios():
                 email,
                 role,
                 ativo
-            FROM usuarios
+            FROM users
             ORDER BY id DESC
         """)
 
@@ -1217,7 +1316,7 @@ def admin_auditoria():
 
         cursor.execute("""
             SELECT *
-            FROM auditoria
+            FROM audit_logs
             ORDER BY id DESC
             LIMIT 500
         """)
