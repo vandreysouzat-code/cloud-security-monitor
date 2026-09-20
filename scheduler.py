@@ -1,4 +1,4 @@
-import threading
+﻿import threading
 import time
 from datetime import datetime
 
@@ -26,7 +26,7 @@ from ssl_alert_manager import (
 )
 
 
-INTERVALO_MONITORAMENTO = 60
+INTERVALO_MONITORAMENTO = 15
 
 _monitoramento_iniciado = False
 _lock = threading.Lock()
@@ -342,3 +342,4 @@ if __name__ == "__main__":
         print(
             "🛑 Monitoramento encerrado pelo usuário."
         )
+

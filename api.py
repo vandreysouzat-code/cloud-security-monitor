@@ -44,6 +44,37 @@ from billing import registrar_rotas as registrar_rotas_billing
 # CONFIGURAÇÃO
 # ============================================================
 
+
+def serializar_registro(valor):
+    """Converte sqlite3.Row/dict/list para dados compat?veis com JSON."""
+    if valor is None:
+        return None
+
+    if isinstance(valor, dict):
+        return {
+            str(chave): serializar_registro(item)
+            for chave, item in valor.items()
+        }
+
+    if hasattr(valor, "keys"):
+        return {
+            str(chave): serializar_registro(valor[chave])
+            for chave in valor.keys()
+        }
+
+    if isinstance(valor, (list, tuple)):
+        return [serializar_registro(item) for item in valor]
+
+    return valor
+
+
+def serializar_lista(valores):
+    return [
+        serializar_registro(valor)
+        for valor in (valores or [])
+    ]
+
+
 app = Flask(__name__)
 
 PRODUCAO = (
@@ -775,57 +806,38 @@ def status():
 @app.route("/api/sites", methods=["GET"])
 @login_required
 def api_listar_sites():
-
-    usuario = usuario_logado()
-
     try:
+        usuario = usuario_logado()
 
-        sites = listar_sites(
-            usuario["id"]
-        )
+        if not usuario:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Usuário não autenticado."
+            }), 401
 
-    except TypeError:
+        sites = listar_sites(usuario["id"])
+        resultado = []
 
-        sites = listar_sites()
-
-        sites = [
-            site
-            for site in sites
-            if (
-                site.get("usuario_id") == usuario["id"]
-                if isinstance(site, dict)
-                else True
-            )
-        ]
-
-    resultado = []
-
-    for site in sites or []:
-        if isinstance(site, dict):
+        for site in sites:
             resultado.append({
-                "id": site.get("id"),
-                "usuario_id": site.get("usuario_id"),
-                "nome": site.get("nome"),
-                "url": site.get("url"),
-                "criado_em": site.get("criado_em"),
+                "id": site["id"],
+                "usuario_id": site["usuario_id"],
+                "nome": site["nome"],
+                "url": site["url"],
+                "criado_em": site["criado_em"]
             })
-        else:
-            try:
-                resultado.append({
-                    "id": site[0],
-                    "usuario_id": site[1],
-                    "nome": site[2],
-                    "url": site[3],
-                    "criado_em": site[4],
-                })
-            except (IndexError, TypeError, KeyError):
-                continue
 
-    return jsonify({
-        "sucesso": True,
-        "sites": resultado
-    })
+        return jsonify({
+            "sucesso": True,
+            "sites": resultado
+        })
 
+    except Exception as e:
+        print("ERRO /api/sites:", repr(e))
+        return jsonify({
+            "sucesso": False,
+            "erro": "Erro interno do servidor."
+        }), 500
 
 @app.route("/api/sites", methods=["POST"])
 @login_required
@@ -1044,7 +1056,7 @@ def api_monitoramentos(site_id):
 
     return jsonify({
         "sucesso": True,
-        "monitoramentos": monitoramentos
+        "monitoramentos": serializar_lista(monitoramentos)
     })
 
 
@@ -1085,7 +1097,7 @@ def api_incidentes(site_id):
 
     return jsonify({
         "sucesso": True,
-        "incidentes": incidentes
+        "incidentes": serializar_lista(incidentes)
     })
 
 
@@ -1126,7 +1138,7 @@ def api_ssl_alertas(site_id):
 
     return jsonify({
         "sucesso": True,
-        "ssl_alertas": alertas
+        "ssl_alertas": serializar_lista(alertas)
     })
 
 
@@ -1170,7 +1182,7 @@ def api_metricas(site_id):
 
     return jsonify({
         "sucesso": True,
-        "metricas": metricas
+        "metricas": serializar_registro(metricas)
     })
 
 
@@ -1221,7 +1233,7 @@ def api_ssl(site_id):
 
     return jsonify({
         "sucesso": True,
-        "ssl": registros
+        "ssl": serializar_lista(registros)
     })
 
 

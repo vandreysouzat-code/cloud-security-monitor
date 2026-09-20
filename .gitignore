@@ -7,4 +7,10 @@ monitor.db
 .vscode/
 logs/*.log
 backups/
+teste_alerta.py# Backups e arquivos temporários
+*_backup_*.py
+*_backup_*.db
+ver_colunas.py
+reset_senha.py
+templates/dashboard_backup_*.html
 teste_alerta.py

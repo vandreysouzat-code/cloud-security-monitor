@@ -1098,33 +1098,24 @@ def adicionar_site(
 # ==============================================================
 
 def listar_sites(usuario_id):
+    conn = conectar()
+    cursor = conn.cursor()
 
-    conexao = conectar()
+    cursor.execute("""
+        SELECT
+            id,
+            usuario_id,
+            nome,
+            url,
+            criado_em
+        FROM sites
+        WHERE usuario_id = ?
+        ORDER BY id DESC
+    """, (usuario_id,))
 
-    try:
-
-        cursor = conexao.cursor()
-
-        cursor.execute(
-            """
-            SELECT *
-            FROM sites
-            WHERE usuario_id = ?
-            ORDER BY id DESC
-            """,
-            (usuario_id,)
-        )
-
-        return cursor.fetchall()
-
-    finally:
-
-        conexao.close()
-
-
-# ==============================================================
-# BUSCAR SITE
-# ==============================================================
+    sites = cursor.fetchall()
+    conn.close()
+    return sites
 
 def buscar_site(
     site_id,
