@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -1382,6 +1382,45 @@ body.dark .modal-close{
     }
 }
 </style>
+
+<style id="admin-profile-style">
+
+#adminProfileBox {
+    cursor: default;
+}
+
+#adminProfileBox .admin-role {
+    display: none;
+}
+
+#adminProfileBox.is-admin .admin-role {
+    display: block;
+}
+
+#adminProfileBox.is-admin .normal-role {
+    display: none;
+}
+
+#adminNavigationButton {
+    display: none;
+}
+
+#adminNavigationButton.visible {
+    display: inline-flex !important;
+}
+
+</style>
+
+<style id="admin-access-style">
+.admin-nav-item {
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.admin-nav-item:hover {
+    text-decoration: none;
+}
+</style>
 </head>
 
 <body>
@@ -1389,6 +1428,15 @@ body.dark .modal-close{
 <div class="app">
 
     <aside class="sidebar" id="sidebar">
+{% if usuario and usuario["role"]|string|lower == "admin" %}
+<a id="adminServerNavItem"
+   href="{{ url_for('admin') }}"
+   class="nav-item admin-nav-item"
+   title="Painel administrativo">
+    <span class="nav-icon">⚙</span>
+    <span>Administração</span>
+</a>
+{% endif %}
 
         <div class="brand">
 
@@ -1570,7 +1618,25 @@ body.dark .modal-close{
 
             </div>
 
-        </header>
+        
+<a
+    href="/admin"
+    id="adminNavigationButton"
+    style="
+        display:none;
+        text-decoration:none;
+        padding:10px 14px;
+        border-radius:10px;
+        background:#2563eb;
+        color:white;
+        font-weight:600;
+        font-size:13px;
+        margin-left:8px;
+    "
+>
+    👑 Administração
+</a>
+</header>
 
         <div class="content">
 
@@ -5383,7 +5449,257 @@ document.addEventListener(
     "DOMContentLoaded",
     iniciar
 );
+
+function adicionarLinkAdminSeNecessario(role) {
+    const isAdmin = String(role || "").trim().toLowerCase() === "admin";
+
+    let adminLink = document.getElementById("adminNavItem");
+
+    if (!isAdmin) {
+        if (adminLink) {
+            adminLink.remove();
+        }
+        return;
+    }
+
+    if (adminLink) {
+        adminLink.style.display = "";
+        return;
+    }
+
+    adminLink = document.createElement("a");
+    adminLink.id = "adminNavItem";
+    adminLink.href = "/admin";
+    adminLink.className = "nav-item admin-nav-item";
+
+    adminLink.innerHTML = `
+        <span class="nav-icon">⚙</span>
+        <span>Administração</span>
+    `;
+
+    const navSection =
+        document.querySelector(".nav-section") ||
+        document.querySelector("nav") ||
+        document.querySelector(".sidebar");
+
+    if (navSection) {
+        navSection.appendChild(adminLink);
+    }
+}
 </script>
 
 </body>
 </html>
+
+<script id="admin-profile-script">
+
+(function () {
+
+    async function carregarPerfilAdmin() {
+
+        try {
+
+            const resposta = await fetch(
+                "/api/me",
+                {
+                    method: "GET",
+                    credentials: "same-origin",
+                    cache: "no-store",
+                    headers: {
+                        "Accept": "application/json"
+                    }
+                }
+            );
+
+            if (!resposta.ok) {
+                console.warn(
+                    "Nao foi possivel obter /api/me:",
+                    resposta.status
+                );
+                return;
+            }
+
+            const dados = await resposta.json();
+
+            if (
+                !dados ||
+                !dados.sucesso ||
+                !dados.usuario
+            ) {
+                return;
+            }
+
+            const usuario = dados.usuario;
+
+            const role = String(
+                usuario.role || "user"
+            )
+                .trim()
+                .toLowerCase();
+
+            const nome = usuario.nome || "Usuário";
+
+            const admin =
+                role === "admin" ||
+                role === "administrador";
+
+            console.log(
+                "Cloud Security Monitor:",
+                {
+                    usuario: nome,
+                    role: role,
+                    admin: admin
+                }
+            );
+
+            /*
+             * Procura elementos existentes do perfil
+             * sem depender de classes especificas.
+             */
+
+            const elementos =
+                Array.from(
+                    document.querySelectorAll(
+                        "body *"
+                    )
+                );
+
+            for (
+                const elemento
+                of elementos
+            ) {
+
+                if (
+                    elemento.children.length > 0
+                ) {
+                    continue;
+                }
+
+                const valor =
+                    (elemento.textContent || "")
+                    .trim();
+
+                if (
+                    valor === "Usuário"
+                ) {
+
+                    elemento.textContent =
+                        admin
+                            ? "Administrador"
+                            : nome;
+
+                }
+
+                if (
+                    valor === "Conta ativa"
+                ) {
+
+                    elemento.textContent =
+                        admin
+                            ? "Conta administrativa"
+                            : "Conta ativa";
+
+                }
+
+            }
+
+            /*
+             * Procura o avatar textual "U".
+             */
+
+            const candidatos =
+                Array.from(
+                    document.querySelectorAll(
+                        "body *"
+                    )
+                );
+
+            for (
+                const elemento
+                of candidatos
+            ) {
+
+                if (
+                    elemento.children.length === 0 &&
+                    (elemento.textContent || "")
+                        .trim() === "U"
+                ) {
+
+                    elemento.textContent =
+                        admin ? "A" : "U";
+
+                    break;
+                }
+
+            }
+
+            /*
+             * Ativa o botão Administração.
+             */
+
+            if (admin) {
+
+                const botao =
+                    document.getElementById(
+                        "adminNavigationButton"
+                    );
+
+                if (botao) {
+
+                    botao.style.display =
+                        "inline-flex";
+
+                    botao.classList.add(
+                        "visible"
+                    );
+
+                }
+
+            }
+
+            /*
+             * Marca o body para permitir
+             * personalizacao CSS.
+             */
+
+            document.body.dataset.userRole =
+                role;
+
+            if (admin) {
+
+                document.body.classList.add(
+                    "user-is-admin"
+                );
+
+            }
+
+        } catch (erro) {
+
+            console.error(
+                "Erro ao carregar perfil:",
+                erro
+            );
+
+        }
+
+    }
+
+    if (
+        document.readyState === "loading"
+    ) {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            carregarPerfilAdmin
+        );
+
+    } else {
+
+        carregarPerfilAdmin();
+
+    }
+
+})();
+
+</script>
+
