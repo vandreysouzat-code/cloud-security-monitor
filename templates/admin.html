@@ -1047,9 +1047,7 @@ carregarMetricasAdmin();
 
             console.error(erro);
 
-            alert(
-                "Erro de conexão ao alterar o perfil."
-            );
+            alert("Erro ao alterar o perfil.\n\nHTTP: " + (typeof resposta !== "undefined" ? resposta.status : "desconhecido") + "\n\n" + (typeof dados !== "undefined" ? (dados.erro || JSON.stringify(dados)) : erro.message));
         }
     }
 
@@ -1099,6 +1097,7 @@ carregarMetricasAdmin();
 </body>
 
 </html>
+
 
 
 
