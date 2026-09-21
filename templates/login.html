@@ -1,240 +1,358 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Login — Cloud Security Monitor</title>
+    <title>Cloud Security Monitor | Login</title>
 
     <style>
-
         * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
 
         body {
-            margin: 0;
             min-height: 100vh;
+            font-family: Inter, Arial, sans-serif;
+            background:
+                radial-gradient(circle at 15% 20%, rgba(37,99,235,.20), transparent 35%),
+                radial-gradient(circle at 85% 80%, rgba(6,182,212,.15), transparent 35%),
+                #050b17;
+            color: #f8fafc;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f5f7fb;
-            color: #1f2937;
+            overflow: hidden;
         }
 
-        .login-container {
-            width: 100%;
-            max-width: 430px;
-            padding: 20px;
+        .background-grid {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+            background-size: 45px 45px;
+            pointer-events: none;
         }
 
-        .login-card {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+        .container {
+            width: min(1050px, 94%);
+            min-height: 610px;
+            display: grid;
+            grid-template-columns: 1.15fr .85fr;
+            background: rgba(15,23,42,.82);
+            border: 1px solid rgba(148,163,184,.15);
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow:
+                0 30px 90px rgba(0,0,0,.55),
+                0 0 80px rgba(37,99,235,.08);
+            backdrop-filter: blur(20px);
+            position: relative;
+            z-index: 2;
+        }
+
+        .brand {
+            padding: 65px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background:
+                linear-gradient(135deg,
+                    rgba(37,99,235,.16),
+                    rgba(6,182,212,.04));
+            border-right: 1px solid rgba(148,163,184,.10);
         }
 
         .logo {
-            text-align: center;
-            margin-bottom: 30px;
+            width: 64px;
+            height: 64px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg,#2563eb,#06b6d4);
+            box-shadow: 0 15px 40px rgba(37,99,235,.35);
+            margin-bottom: 28px;
+            font-size: 30px;
         }
 
-        .logo-icon {
-            font-size: 48px;
-            margin-bottom: 10px;
+        .brand h1 {
+            font-size: 42px;
+            line-height: 1.08;
+            margin-bottom: 20px;
+            letter-spacing: -1.5px;
         }
 
-        .logo h1 {
-            margin: 0;
-            font-size: 26px;
-            color: #111827;
+        .brand h1 span {
+            background: linear-gradient(90deg,#60a5fa,#22d3ee);
+            -webkit-background-clip: text;
+            color: transparent;
         }
 
-        .logo p {
-            margin-top: 8px;
-            color: #6b7280;
+        .brand p {
+            color: #94a3b8;
+            font-size: 17px;
+            line-height: 1.7;
+            max-width: 500px;
+        }
+
+        .features {
+            margin-top: 35px;
+            display: grid;
+            gap: 15px;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #cbd5e1;
             font-size: 14px;
         }
 
-        .form-group {
+        .check {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(34,197,94,.12);
+            color: #4ade80;
+            font-size: 13px;
+        }
+
+        .login {
+            padding: 65px 50px;
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .login h2 {
+            font-size: 30px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 35px;
+        }
+
+        .field {
             margin-bottom: 20px;
         }
 
         label {
             display: block;
             margin-bottom: 8px;
-            font-size: 14px;
-            font-weight: bold;
-            color: #374151;
+            font-size: 13px;
+            color: #cbd5e1;
+            font-weight: 600;
         }
 
         input {
             width: 100%;
-            padding: 14px;
-            border: 1px solid #d1d5db;
-            border-radius: 10px;
-            font-size: 15px;
+            height: 52px;
+            padding: 0 16px;
+            border-radius: 13px;
+            border: 1px solid #263449;
             outline: none;
+            background: rgba(2,6,23,.65);
+            color: #fff;
+            transition: .2s;
         }
 
         input:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59,130,246,.10);
         }
 
         button {
             width: 100%;
-            padding: 14px;
-            border: none;
-            border-radius: 10px;
-            background: #2563eb;
+            height: 53px;
+            border: 0;
+            border-radius: 13px;
             color: white;
-            font-size: 16px;
-            font-weight: bold;
+            font-weight: 700;
+            font-size: 15px;
             cursor: pointer;
+            background: linear-gradient(135deg,#2563eb,#0891b2);
+            box-shadow: 0 15px 35px rgba(37,99,235,.25);
+            transition: .2s;
         }
 
         button:hover {
-            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 20px 45px rgba(37,99,235,.35);
         }
 
-        .erro {
-            background: #fee2e2;
-            color: #dc2626;
-            padding: 12px;
-            border-radius: 10px;
+        .error {
+            background: rgba(239,68,68,.10);
+            border: 1px solid rgba(239,68,68,.25);
+            color: #fca5a5;
+            padding: 13px;
+            border-radius: 12px;
             margin-bottom: 20px;
-            font-size: 14px;
-            text-align: center;
-        }
-
-        .register {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #6b7280;
-        }
-
-        .register a {
-            color: #2563eb;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .register a:hover {
-            text-decoration: underline;
+            font-size: 13px;
         }
 
         .footer {
+            margin-top: 28px;
             text-align: center;
-            margin-top: 20px;
-            color: #9ca3af;
+            color: #475569;
             font-size: 12px;
         }
 
-    </style>
+        .status {
+            margin-top: 18px;
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+        }
 
+        @media(max-width: 800px) {
+            body {
+                overflow: auto;
+                padding: 20px 0;
+            }
+
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .brand {
+                padding: 40px 30px;
+            }
+
+            .brand h1 {
+                font-size: 32px;
+            }
+
+            .login {
+                padding: 40px 30px;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
-<div class="login-container">
+<div class="background-grid"></div>
 
-    <div class="login-card">
+<div class="container">
 
-        <div class="logo">
+    <section class="brand">
 
-            <div class="logo-icon">
-                ☁️
+        <div class="logo">🛡️</div>
+
+        <h1>
+            Cloud Security<br>
+            <span>Monitor</span>
+        </h1>
+
+        <p>
+            Monitore seus serviços, acompanhe disponibilidade,
+            tempo de resposta, incidentes e certificados SSL
+            em um único ambiente.
+        </p>
+
+        <div class="features">
+
+            <div class="feature">
+                <div class="check">✓</div>
+                Monitoramento contínuo
             </div>
 
-            <h1>
-                Cloud Security Monitor
-            </h1>
+            <div class="feature">
+                <div class="check">✓</div>
+                Histórico de disponibilidade
+            </div>
 
-            <p>
-                Acesse seu painel de monitoramento
-            </p>
+            <div class="feature">
+                <div class="check">✓</div>
+                Monitoramento SSL
+            </div>
 
+            <div class="feature">
+                <div class="check">✓</div>
+                Indicadores de performance
+            </div>
+
+        </div>
+
+    </section>
+
+    <section class="login">
+
+        <h2>Bem-vindo de volta</h2>
+
+        <div class="subtitle">
+            Entre na sua conta para acessar o monitoramento.
         </div>
 
         {% if erro %}
-
-        <div class="erro">
+        <div class="error">
             {{ erro }}
         </div>
-
         {% endif %}
 
-        <form
-            method="POST"
-            action="/login"
-        >
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="error">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
-            <div class="form-group">
+        <form method="POST">
 
-                <label for="email">
-                    E-mail
-                </label>
-
+            <div class="field">
+                <label for="email">E-mail</label>
                 <input
+                    type="email"
                     id="email"
                     name="email"
-                    type="email"
                     placeholder="seu@email.com"
+                    autocomplete="email"
                     required
                 >
-
             </div>
 
-            <div class="form-group">
-
-                <label for="senha">
-                    Senha
-                </label>
-
+            <div class="field">
+                <label for="senha">Senha</label>
                 <input
+                    type="password"
                     id="senha"
                     name="senha"
-                    type="password"
-                    placeholder="••••••••"
+                    placeholder="Digite sua senha"
+                    autocomplete="current-password"
                     required
                 >
-
             </div>
 
             <button type="submit">
-                Entrar
+                Entrar no sistema
             </button>
 
         </form>
 
-        <div class="register">
-
-            Ainda não possui uma conta?
-
-            <a href="/register">
-                Criar conta
-            </a>
-
+        <div class="status">
+            🔒 Conexão protegida • Cloud Security Monitor
         </div>
 
-    </div>
+        <div class="footer">
+            Sistema de monitoramento e segurança em nuvem
+        </div>
 
-    <div class="footer">
-        Cloud Security Monitor · Segurança e monitoramento
-    </div>
+    </section>
 
 </div>
 
 </body>
-
 </html>

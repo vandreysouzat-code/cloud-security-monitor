@@ -1,580 +1,516 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
 
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>
-        Cloud Security Monitor - Admin
-    </title>
-
-    <style>
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            font-family:
-                Arial,
-                Helvetica,
-                sans-serif;
-            background: #f4f6f8;
-            color: #1f2937;
-        }
-
-        header {
-            background: #111827;
-            color: white;
-            padding: 20px 30px;
-
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-
-            gap: 20px;
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 22px;
-        }
-
-        header p {
-            margin: 5px 0 0;
-            color: #9ca3af;
-            font-size: 14px;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn {
-            border: none;
-            border-radius: 8px;
-            padding: 10px 15px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.2s;
-        }
-
-        .btn:hover {
-            transform: translateY(-1px);
-            opacity: 0.9;
-        }
-
-        .btn-secondary {
-            background: #374151;
-            color: white;
-        }
-
-        .btn-primary {
-            background: #2563eb;
-            color: white;
-        }
-
-        .btn-success {
-            background: #16a34a;
-            color: white;
-        }
-
-        .btn-danger {
-            background: #dc2626;
-            color: white;
-        }
-
-        .btn-warning {
-            background: #d97706;
-            color: white;
-        }
-
-        main {
-            padding: 30px;
-            max-width: 1500px;
-            margin: auto;
-        }
-
-        .cards {
-            display: grid;
-
-            grid-template-columns:
-                repeat(
-                    auto-fit,
-                    minmax(200px, 1fr)
-                );
-
-            gap: 20px;
-
-            margin-bottom: 30px;
-        }
-
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 22px;
-
-            box-shadow:
-                0 3px 12px
-                rgba(0, 0, 0, 0.08);
-        }
-
-        .card-title {
-            font-size: 14px;
-            color: #6b7280;
-            margin-bottom: 8px;
-        }
-
-        .card-value {
-            font-size: 30px;
-            font-weight: bold;
-        }
-
-        .section {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 30px;
-
-            box-shadow:
-                0 3px 12px
-                rgba(0, 0, 0, 0.08);
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-
-            gap: 15px;
-
-            margin-bottom: 20px;
-        }
-
-        .section-header h2 {
-            margin: 0;
-            font-size: 20px;
-        }
-
-        .table-container {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        th,
-        td {
-            padding: 13px;
-            border-bottom: 1px solid #e5e7eb;
-            text-align: left;
-            white-space: nowrap;
-        }
-
-        th {
-            background: #f9fafb;
-            font-size: 13px;
-            color: #4b5563;
-        }
-
-        td {
-            font-size: 14px;
-        }
-
-        tr:hover td {
-            background: #f9fafb;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 5px 9px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-
-        .badge-admin {
-            background: #ede9fe;
-            color: #6d28d9;
-        }
-
-        .badge-user {
-            background: #e0f2fe;
-            color: #0369a1;
-        }
-
-        .badge-active {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .badge-blocked {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .actions {
-            display: flex;
-            gap: 7px;
-            flex-wrap: wrap;
-        }
-
-        .actions .btn {
-            padding: 7px 10px;
-            font-size: 12px;
-        }
-
-        .empty {
-            text-align: center;
-            color: #6b7280;
-            padding: 30px;
-        }
-
-        .loading {
-            text-align: center;
-            color: #6b7280;
-            padding: 25px;
-        }
-
-        .error {
-            background: #fee2e2;
-            color: #991b1b;
-            padding: 12px 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .success {
-            background: #dcfce7;
-            color: #166534;
-            padding: 12px 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .modal-overlay {
-            position: fixed;
-            inset: 0;
-
-            background:
-                rgba(0, 0, 0, 0.55);
-
-            display: none;
-
-            align-items: center;
-            justify-content: center;
-
-            padding: 20px;
-
-            z-index: 1000;
-        }
-
-        .modal {
-            background: white;
-            width: 100%;
-            max-width: 450px;
-
-            border-radius: 14px;
-            padding: 25px;
-
-            box-shadow:
-                0 10px 40px
-                rgba(0, 0, 0, 0.25);
-        }
-
-        .modal h3 {
-            margin-top: 0;
-        }
-
-        .modal p {
-            color: #4b5563;
-            line-height: 1.5;
-        }
-
-        .modal-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        @media (max-width: 700px) {
-
-            header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            main {
-                padding: 15px;
-            }
-
-            .section {
-                padding: 15px;
-            }
-
-        }
-
-    </style>
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>Cloud Security Monitor | Administração</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+    min-height: 100vh;
+
+    background:
+        radial-gradient(
+            circle at 10% 10%,
+            rgba(59,130,246,.16),
+            transparent 30%
+        ),
+        radial-gradient(
+            circle at 90% 20%,
+            rgba(139,92,246,.13),
+            transparent 30%
+        ),
+        #070b14;
+
+    color: #f8fafc;
+}
+
+header {
+
+    height: 72px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    padding: 0 32px;
+
+    border-bottom: 1px solid rgba(255,255,255,.08);
+
+    background: rgba(7,11,20,.82);
+
+    backdrop-filter: blur(16px);
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 10;
+}
+
+.brand {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+}
+
+.logo {
+
+    width: 40px;
+
+    height: 40px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border-radius: 12px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #2563eb,
+            #7c3aed
+        );
+
+    font-size: 20px;
+}
+
+.brand h1 {
+
+    font-size: 18px;
+
+    font-weight: 700;
+}
+
+.brand span {
+
+    display: block;
+
+    color: #94a3b8;
+
+    font-size: 12px;
+
+    margin-top: 2px;
+}
+
+.actions {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+.btn {
+
+    border: 1px solid rgba(255,255,255,.1);
+
+    background: rgba(255,255,255,.05);
+
+    color: #e2e8f0;
+
+    padding: 10px 15px;
+
+    border-radius: 10px;
+
+    text-decoration: none;
+
+    font-size: 13px;
+
+    cursor: pointer;
+
+    transition: .2s;
+}
+
+.btn:hover {
+
+    background: rgba(255,255,255,.1);
+
+    transform: translateY(-1px);
+}
+
+.btn.primary {
+
+    background: #2563eb;
+
+    border-color: #2563eb;
+
+    color: white;
+}
+
+.btn.danger {
+
+    color: #fecaca;
+
+    border-color: rgba(239,68,68,.25);
+}
+
+main {
+
+    max-width: 1400px;
+
+    margin: auto;
+
+    padding: 34px;
+}
+
+.hero {
+
+    margin-bottom: 28px;
+}
+
+.hero h2 {
+
+    font-size: 30px;
+
+    margin-bottom: 8px;
+}
+
+.hero p {
+
+    color: #94a3b8;
+
+    font-size: 14px;
+}
+
+.admin-badge {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    margin-top: 16px;
+
+    padding: 7px 11px;
+
+    border-radius: 999px;
+
+    background: rgba(34,197,94,.1);
+
+    border: 1px solid rgba(34,197,94,.2);
+
+    color: #86efac;
+
+    font-size: 12px;
+
+    font-weight: 600;
+}
+
+.grid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fit,
+            minmax(220px, 1fr)
+        );
+
+    gap: 18px;
+
+    margin-bottom: 28px;
+}
+
+.card {
+
+    background: rgba(15,23,42,.72);
+
+    border: 1px solid rgba(255,255,255,.07);
+
+    border-radius: 18px;
+
+    padding: 22px;
+
+    box-shadow:
+        0 20px 60px rgba(0,0,0,.2);
+
+    backdrop-filter: blur(12px);
+}
+
+.card h3 {
+
+    font-size: 14px;
+
+    color: #94a3b8;
+
+    margin-bottom: 12px;
+}
+
+.value {
+
+    font-size: 28px;
+
+    font-weight: 750;
+}
+
+.section {
+
+    margin-top: 24px;
+}
+
+.section-title {
+
+    font-size: 18px;
+
+    margin-bottom: 14px;
+}
+
+.table-wrap {
+
+    overflow-x: auto;
+
+    border-radius: 16px;
+
+    border: 1px solid rgba(255,255,255,.07);
+}
+
+table {
+
+    width: 100%;
+
+    border-collapse: collapse;
+
+    min-width: 700px;
+
+    background: rgba(15,23,42,.72);
+}
+
+th,
+td {
+
+    padding: 14px 16px;
+
+    text-align: left;
+
+    border-bottom:
+        1px solid rgba(255,255,255,.06);
+
+    font-size: 13px;
+}
+
+th {
+
+    color: #94a3b8;
+
+    font-weight: 600;
+}
+
+td {
+
+    color: #e2e8f0;
+}
+
+.status {
+
+    display: inline-flex;
+
+    padding: 5px 9px;
+
+    border-radius: 999px;
+
+    background: rgba(34,197,94,.1);
+
+    color: #86efac;
+
+    font-size: 11px;
+
+    font-weight: 600;
+}
+
+.loading {
+
+    color: #64748b;
+
+    padding: 20px;
+}
+
+@media(max-width:700px) {
+
+    header {
+
+        padding: 0 16px;
+    }
+
+    header .brand span {
+
+        display: none;
+    }
+
+    main {
+
+        padding: 20px 16px;
+    }
+
+    .hero h2 {
+
+        font-size: 24px;
+    }
+
+    .actions .btn.dashboard {
+
+        display: none;
+    }
+}
+
+</style>
 
 </head>
 
-
 <body>
-
 
 <header>
 
-    <div>
+    <div class="brand">
 
-        <h1>
-            🔐 Cloud Security Monitor
-        </h1>
+        <div class="logo">🛡️</div>
 
-        <p>
-            Painel administrativo
-        </p>
+        <div>
+
+            <h1>Cloud Security Monitor</h1>
+
+            <span>Painel administrativo</span>
+
+        </div>
 
     </div>
 
+    <div class="actions">
 
-    <div class="header-actions">
-
-        <button
-            class="btn btn-secondary"
-            onclick="window.location.href='/dashboard'"
+        <a
+            href="/dashboard"
+            class="btn primary dashboard"
         >
-            Dashboard
-        </button>
+            ← Dashboard
+        </a>
 
-        <button
-            class="btn btn-danger"
-            onclick="window.location.href='/logout'"
+        <a
+            href="/logout"
+            class="btn danger"
         >
             Sair
-        </button>
+        </a>
 
     </div>
 
 </header>
 
-
 <main>
 
+    <section class="hero">
 
-    <div
-        id="errorMessage"
-        class="error"
-    ></div>
+        <h2>Administração</h2>
 
+        <p>
+            Controle central da plataforma,
+            usuários e monitoramentos.
+        </p>
 
-    <div
-        id="successMessage"
-        class="success"
-    ></div>
+        <div class="admin-badge">
 
+            👑 Administrador
 
-    <!-- =====================================================
-         CARDS
-         ===================================================== -->
+            <span>
+                {{ usuario["email"] if usuario and usuario["email"] else "" }}
+            </span>
 
-    <div class="cards">
+        </div>
 
+    </section>
+
+    <section class="grid">
 
         <div class="card">
 
-            <div class="card-title">
-                Usuários
-            </div>
+            <h3>Usuários</h3>
 
             <div
-                id="totalUsers"
-                class="card-value"
+                class="value"
+                id="totalUsuarios"
             >
-                -
+                —
             </div>
 
         </div>
 
-
         <div class="card">
 
-            <div class="card-title">
-                Usuários ativos
-            </div>
+            <h3>Sites monitorados</h3>
 
             <div
-                id="activeUsers"
-                class="card-value"
-            >
-                -
-            </div>
-
-        </div>
-
-
-        <div class="card">
-
-            <div class="card-title">
-                Administradores
-            </div>
-
-            <div
-                id="adminUsers"
-                class="card-value"
-            >
-                -
-            </div>
-
-        </div>
-
-
-        <div class="card">
-
-            <div class="card-title">
-                Sites monitorados
-            </div>
-
-            <div
+                class="value"
                 id="totalSites"
-                class="card-value"
             >
-                -
+                —
             </div>
 
         </div>
 
+        <div class="card">
 
-    </div>
+            <h3>Monitoramentos</h3>
 
-
-    <!-- =====================================================
-         USUÁRIOS
-         ===================================================== -->
-
-    <section class="section">
-
-
-        <div class="section-header">
-
-            <h2>
-                👥 Gerenciamento de usuários
-            </h2>
-
-            <button
-                class="btn btn-primary"
-                onclick="carregarUsuarios()"
+            <div
+                class="value"
+                id="totalMonitoramentos"
             >
-                Atualizar
-            </button>
+                —
+            </div>
 
         </div>
 
+        <div class="card">
 
-        <div
-            id="usersLoading"
-            class="loading"
-        >
-            Carregando usuários...
-        </div>
+            <h3>Incidentes</h3>
 
-
-        <div class="table-container">
-
-
-            <table id="usersTable">
-
-                <thead>
-
-                    <tr>
-
-                        <th>
-                            ID
-                        </th>
-
-                        <th>
-                            Nome
-                        </th>
-
-                        <th>
-                            E-mail
-                        </th>
-
-                        <th>
-                            Função
-                        </th>
-
-                        <th>
-                            Status
-                        </th>
-
-                        <th>
-                            Ações
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-
-                <tbody id="usersBody">
-
-                </tbody>
-
-            </table>
-
+            <div
+                class="value"
+                id="totalIncidentes"
+            >
+                —
+            </div>
 
         </div>
-
 
     </section>
 
-
-    <!-- =====================================================
-         SITES
-         ===================================================== -->
-
     <section class="section">
 
+        <h3 class="section-title">
+            Usuários da plataforma
+        </h3>
 
-        <div class="section-header">
-
-            <h2>
-                🌐 Sites cadastrados
-            </h2>
-
-            <button
-                class="btn btn-primary"
-                onclick="carregarSites()"
-            >
-                Atualizar
-            </button>
-
-        </div>
-
-
-        <div
-            id="sitesLoading"
-            class="loading"
-        >
-            Carregando sites...
-        </div>
-
-
-        <div class="table-container">
-
+        <div class="table-wrap">
 
             <table>
 
@@ -582,1467 +518,222 @@
 
                     <tr>
 
-                        <th>
-                            ID
-                        </th>
-
-                        <th>
-                            Site
-                        </th>
-
-                        <th>
-                            URL
-                        </th>
-
-                        <th>
-                            Usuário
-                        </th>
-
-                        <th>
-                            E-mail
-                        </th>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>E-mail</th>
+                        <th>Perfil</th>
+                        <th>Status</th>
 
                     </tr>
 
                 </thead>
 
-
-                <tbody id="sitesBody">
-
-                </tbody>
-
-            </table>
-
-
-        </div>
-
-
-    </section>
-
-
-    <!-- =====================================================
-         HISTÓRICO SSL
-         ===================================================== -->
-
-    <section class="section">
-
-
-        <div class="section-header">
-
-            <h2>
-                🔒 Histórico SSL
-            </h2>
-
-            <button
-                class="btn btn-primary"
-                onclick="carregarSSL()"
-            >
-                Atualizar
-            </button>
-
-        </div>
-
-
-        <div
-            id="sslLoading"
-            class="loading"
-        >
-            Carregando histórico SSL...
-        </div>
-
-
-        <div class="table-container">
-
-
-            <table>
-
-                <thead>
+                <tbody id="usuariosTabela">
 
                     <tr>
 
-                        <th>
-                            Domínio
-                        </th>
+                        <td
+                            colspan="5"
+                            class="loading"
+                        >
+                            Carregando usuários...
 
-                        <th>
-                            IP
-                        </th>
-
-                        <th>
-                            Validade
-                        </th>
-
-                        <th>
-                            Expiração
-                        </th>
-
-                        <th>
-                            Dias restantes
-                        </th>
+                        </td>
 
                     </tr>
-
-                </thead>
-
-
-                <tbody id="sslBody">
 
                 </tbody>
 
             </table>
 
-
         </div>
-
 
     </section>
-
-
-    <!-- =====================================================
-         AUDITORIA
-         ===================================================== -->
-
-    <section class="section">
-
-
-        <div class="section-header">
-
-            <h2>
-                📋 Auditoria
-            </h2>
-
-            <button
-                class="btn btn-primary"
-                onclick="carregarAuditoria()"
-            >
-                Atualizar
-            </button>
-
-        </div>
-
-
-        <div
-            id="auditLoading"
-            class="loading"
-        >
-            Carregando registros...
-        </div>
-
-
-        <div class="table-container">
-
-
-            <table>
-
-                <thead>
-
-                    <tr>
-
-                        <th>
-                            ID
-                        </th>
-
-                        <th>
-                            Usuário
-                        </th>
-
-                        <th>
-                            Ação
-                        </th>
-
-                        <th>
-                            Detalhes
-                        </th>
-
-                        <th>
-                            IP
-                        </th>
-
-                        <th>
-                            Data
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-
-                <tbody id="auditBody">
-
-                </tbody>
-
-            </table>
-
-
-        </div>
-
-
-    </section>
-
 
 </main>
 
-
-<!-- =========================================================
-     MODAL
-     ========================================================= -->
-
-<div
-    id="modalOverlay"
-    class="modal-overlay"
->
-
-
-    <div class="modal">
-
-
-        <h3 id="modalTitle">
-            Confirmar ação
-        </h3>
-
-
-        <p id="modalText">
-            Deseja continuar?
-        </p>
-
-
-        <div class="modal-actions">
-
-
-            <button
-                class="btn btn-secondary"
-                onclick="fecharModal()"
-            >
-                Cancelar
-            </button>
-
-
-            <button
-                id="modalConfirmButton"
-                class="btn btn-primary"
-                onclick="executarAcaoConfirmada()"
-            >
-                Confirmar
-            </button>
-
-
-        </div>
-
-
-    </div>
-
-
-</div>
-
-
 <script>
-
-
-// ==========================================================
-// VARIÁVEIS
-// ==========================================================
-
-let acaoPendente = null;
-
-
-// ==========================================================
-// MENSAGENS
-// ==========================================================
-
-function mostrarErro(mensagem) {
-
-    const elemento =
-        document.getElementById(
-            "errorMessage"
-        );
-
-    elemento.textContent =
-        mensagem;
-
-    elemento.style.display =
-        "block";
-
-    setTimeout(() => {
-
-        elemento.style.display =
-            "none";
-
-    }, 5000);
-
-}
-
-
-function mostrarSucesso(mensagem) {
-
-    const elemento =
-        document.getElementById(
-            "successMessage"
-        );
-
-    elemento.textContent =
-        mensagem;
-
-    elemento.style.display =
-        "block";
-
-    setTimeout(() => {
-
-        elemento.style.display =
-            "none";
-
-    }, 4000);
-
-}
-
-
-// ==========================================================
-// MODAL
-// ==========================================================
-
-function abrirModal(
-    titulo,
-    texto,
-    acao
-) {
-
-    document.getElementById(
-        "modalTitle"
-    ).textContent = titulo;
-
-    document.getElementById(
-        "modalText"
-    ).textContent = texto;
-
-    acaoPendente = acao;
-
-    document.getElementById(
-        "modalOverlay"
-    ).style.display = "flex";
-
-}
-
-
-function fecharModal() {
-
-    document.getElementById(
-        "modalOverlay"
-    ).style.display = "none";
-
-    acaoPendente = null;
-
-}
-
-
-async function executarAcaoConfirmada() {
-
-    if (!acaoPendente) {
-        return;
-    }
-
-    const acao =
-        acaoPendente;
-
-    fecharModal();
-
-    await acao();
-
-}
-
-
-// ==========================================================
-// REQUISIÇÃO PADRÃO
-// ==========================================================
-
-async function requisicao(
-    url,
-    opcoes = {}
-) {
-
-    const resposta =
-        await fetch(
-            url,
-            {
-                credentials: "same-origin",
-                ...opcoes
-            }
-        );
-
-    let dados = null;
-
-    try {
-
-        dados =
-            await resposta.json();
-
-    } catch {
-
-        dados = null;
-
-    }
-
-    if (!resposta.ok) {
-
-        throw new Error(
-            dados?.erro ||
-            "Ocorreu um erro na solicitação."
-        );
-
-    }
-
-    return dados;
-
-}
-
-
-// ==========================================================
-// USUÁRIOS
-// ==========================================================
 
 async function carregarUsuarios() {
 
-    const loading =
-        document.getElementById(
-            "usersLoading"
-        );
+    try {
 
-    const body =
-        document.getElementById(
-            "usersBody"
-        );
+        const resposta =
+            await fetch(
+                "/admin/api/usuarios",
+                {
+                    credentials: "same-origin"
+                }
+            );
 
-    loading.style.display =
-        "block";
+        if (!resposta.ok) {
+
+            throw new Error(
+                "Falha ao consultar usuários."
+            );
+        }
+
+        const dados =
+            await resposta.json();
+
+        const usuarios =
+            dados.usuarios || [];
+
+        document
+            .getElementById(
+                "totalUsuarios"
+            )
+            .textContent =
+                usuarios.length;
+
+        const tabela =
+            document.getElementById(
+                "usuariosTabela"
+            );
+
+        tabela.innerHTML = "";
+
+        usuarios.forEach(usuario => {
+
+            const linha =
+                document.createElement("tr");
+
+            linha.innerHTML = `
+
+                <td>${usuario.id ?? "-"}</td>
+
+                <td>${usuario.nome ?? "-"}</td>
+
+                <td>${usuario.email ?? "-"}</td>
+
+                <td>${usuario.role ?? "user"}</td>
+
+                <td>
+                    <span class="status">
+                        ${usuario.ativo ? "Ativo" : "Inativo"}
+                    </span>
+                </td>
+
+            `;
+
+            tabela.appendChild(linha);
+
+        });
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        document
+            .getElementById(
+                "usuariosTabela"
+            )
+            .innerHTML = `
+
+                <tr>
+                    <td colspan="5">
+                        Não foi possível carregar os usuários.
+                    </td>
+                </tr>
+
+            `;
+    }
+}
+
+async function carregarSites() {
+
+    try {
+
+        const resposta =
+            await fetch(
+                "/api/sites",
+                {
+                    credentials: "same-origin"
+                }
+            );
+
+        const dados =
+            await resposta.json();
+
+        const sites =
+            dados.sites || [];
+
+        document
+            .getElementById(
+                "totalSites"
+            )
+            .textContent =
+                sites.length;
+
+    } catch {
+
+        document
+            .getElementById(
+                "totalSites"
+            )
+            .textContent = "—";
+    }
+}
+
+async function carregarMetricasAdmin() {
 
     try {
 
         const usuarios =
-            await requisicao(
-                "/admin/users"
-            );
-
-        body.innerHTML = "";
-
-
-        if (
-            !usuarios ||
-            usuarios.length === 0
-        ) {
-
-            body.innerHTML = `
-                <tr>
-                    <td
-                        colspan="6"
-                        class="empty"
-                    >
-                        Nenhum usuário cadastrado.
-                    </td>
-                </tr>
-            `;
-
-        } else {
-
-            usuarios.forEach(
-                usuario => {
-
-                    const tr =
-                        document.createElement(
-                            "tr"
-                        );
-
-
-                    const ehAdmin =
-                        usuario.role === "admin";
-
-
-                    const ativo =
-                        Number(
-                            usuario.ativo
-                        ) === 1;
-
-
-                    tr.innerHTML = `
-
-                        <td>
-                            ${escapeHtml(
-                                usuario.id
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                usuario.nome
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                usuario.email
-                            )}
-                        </td>
-
-                        <td>
-
-                            ${
-                                ehAdmin
-
-                                ?
-
-                                `
-                                <span
-                                    class="badge badge-admin"
-                                >
-                                    👑 Admin
-                                </span>
-                                `
-
-                                :
-
-                                `
-                                <span
-                                    class="badge badge-user"
-                                >
-                                    👤 Usuário
-                                </span>
-                                `
-                            }
-
-                        </td>
-
-                        <td>
-
-                            ${
-                                ativo
-
-                                ?
-
-                                `
-                                <span
-                                    class="badge badge-active"
-                                >
-                                    🟢 Ativo
-                                </span>
-                                `
-
-                                :
-
-                                `
-                                <span
-                                    class="badge badge-blocked"
-                                >
-                                    🔴 Bloqueado
-                                </span>
-                                `
-                            }
-
-                        </td>
-
-                        <td>
-
-                            <div class="actions">
-
-                                ${
-                                    ehAdmin
-
-                                    ?
-
-                                    `
-                                    <button
-                                        class="btn btn-warning"
-                                        onclick="confirmarRole(
-                                            ${usuario.id},
-                                            'user',
-                                            '${escapeJs(
-                                                usuario.email
-                                            )}'
-                                        )"
-                                    >
-                                        👤 Rebaixar
-                                    </button>
-                                    `
-
-                                    :
-
-                                    `
-                                    <button
-                                        class="btn btn-primary"
-                                        onclick="confirmarRole(
-                                            ${usuario.id},
-                                            'admin',
-                                            '${escapeJs(
-                                                usuario.email
-                                            )}'
-                                        )"
-                                    >
-                                        👑 Promover
-                                    </button>
-                                    `
-                                }
-
-
-                                ${
-                                    ativo
-
-                                    ?
-
-                                    `
-                                    <button
-                                        class="btn btn-danger"
-                                        onclick="confirmarStatus(
-                                            ${usuario.id},
-                                            0,
-                                            '${escapeJs(
-                                                usuario.email
-                                            )}'
-                                        )"
-                                    >
-                                        🔴 Bloquear
-                                    </button>
-                                    `
-
-                                    :
-
-                                    `
-                                    <button
-                                        class="btn btn-success"
-                                        onclick="confirmarStatus(
-                                            ${usuario.id},
-                                            1,
-                                            '${escapeJs(
-                                                usuario.email
-                                            )}'
-                                        )"
-                                    >
-                                        🟢 Ativar
-                                    </button>
-                                    `
-                                }
-
-                            </div>
-
-                        </td>
-
-                    `;
-
-
-                    body.appendChild(
-                        tr
-                    );
-
+            await fetch(
+                "/admin/api/usuarios",
+                {
+                    credentials: "same-origin"
                 }
             );
 
+        const dados =
+            await usuarios.json();
+
+        const lista =
+            dados.usuarios || [];
+
+        let monitoramentos = 0;
+        let incidentes = 0;
+
+        for (const usuario of lista) {
+
+            // Os valores detalhados permanecem
+            // disponíveis nos dashboards individuais.
+            monitoramentos += 0;
+            incidentes += 0;
+
         }
 
+        document
+            .getElementById(
+                "totalMonitoramentos"
+            )
+            .textContent =
+                "—";
 
-        atualizarCards(
-            usuarios
+        document
+            .getElementById(
+                "totalIncidentes"
+            )
+            .textContent =
+                "—";
+
+    } catch {
+
+        console.log(
+            "Metricas administrativas indisponiveis."
         );
-
-
-    } catch (erro) {
-
-        mostrarErro(
-            erro.message
-        );
-
-        body.innerHTML = `
-            <tr>
-                <td
-                    colspan="6"
-                    class="empty"
-                >
-                    Não foi possível carregar os usuários.
-                </td>
-            </tr>
-        `;
-
-    } finally {
-
-        loading.style.display =
-            "none";
 
     }
 
 }
 
-
-// ==========================================================
-// CONFIRMAR ROLE
-// ==========================================================
-
-function confirmarRole(
-    usuarioId,
-    novaRole,
-    email
-) {
-
-    const texto =
-        novaRole === "admin"
-
-        ?
-
-        `Deseja promover ${email} para administrador?`
-
-        :
-
-        `Deseja rebaixar ${email} para usuário comum?`;
-
-
-    abrirModal(
-
-        novaRole === "admin"
-
-            ?
-
-            "Promover usuário"
-
-            :
-
-            "Rebaixar usuário",
-
-        texto,
-
-        async () => {
-
-            try {
-
-                const dados =
-                    await requisicao(
-                        `/admin/users/${usuarioId}/role`,
-                        {
-                            method: "PUT",
-
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
-
-                            body:
-                                JSON.stringify({
-                                    role:
-                                        novaRole
-                                })
-                        }
-                    );
-
-
-                mostrarSucesso(
-                    dados.mensagem ||
-                    "Função alterada com sucesso."
-                );
-
-
-                await carregarUsuarios();
-
-                await carregarAuditoria();
-
-            } catch (erro) {
-
-                mostrarErro(
-                    erro.message
-                );
-
-            }
-
-        }
-
-    );
-
-}
-
-
-// ==========================================================
-// CONFIRMAR STATUS
-// ==========================================================
-
-function confirmarStatus(
-    usuarioId,
-    novoStatus,
-    email
-) {
-
-    const bloqueando =
-        Number(
-            novoStatus
-        ) === 0;
-
-
-    const texto =
-        bloqueando
-
-        ?
-
-        `Deseja bloquear a conta ${email}?`
-
-        :
-
-        `Deseja ativar novamente a conta ${email}?`;
-
-
-    abrirModal(
-
-        bloqueando
-
-            ?
-
-            "Bloquear usuário"
-
-            :
-
-            "Ativar usuário",
-
-        texto,
-
-        async () => {
-
-            try {
-
-                const dados =
-                    await requisicao(
-                        `/admin/users/${usuarioId}/status`,
-                        {
-                            method: "PUT",
-
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
-
-                            body:
-                                JSON.stringify({
-                                    ativo:
-                                        Number(
-                                            novoStatus
-                                        )
-                                })
-                        }
-                    );
-
-
-                mostrarSucesso(
-                    dados.mensagem ||
-                    "Status alterado com sucesso."
-                );
-
-
-                await carregarUsuarios();
-
-                await carregarAuditoria();
-
-            } catch (erro) {
-
-                mostrarErro(
-                    erro.message
-                );
-
-            }
-
-        }
-
-    );
-
-}
-
-
-// ==========================================================
-// CARDS
-// ==========================================================
-
-function atualizarCards(
-    usuarios
-) {
-
-    const total =
-        usuarios.length;
-
-
-    const ativos =
-        usuarios.filter(
-            usuario =>
-                Number(
-                    usuario.ativo
-                ) === 1
-        ).length;
-
-
-    const admins =
-        usuarios.filter(
-            usuario =>
-                usuario.role === "admin"
-        ).length;
-
-
-    document.getElementById(
-        "totalUsers"
-    ).textContent =
-        total;
-
-
-    document.getElementById(
-        "activeUsers"
-    ).textContent =
-        ativos;
-
-
-    document.getElementById(
-        "adminUsers"
-    ).textContent =
-        admins;
-
-}
-
-
-// ==========================================================
-// SITES
-// ==========================================================
-
-async function carregarSites() {
-
-    const loading =
-        document.getElementById(
-            "sitesLoading"
-        );
-
-    const body =
-        document.getElementById(
-            "sitesBody"
-        );
-
-    loading.style.display =
-        "block";
-
-
-    try {
-
-        const sites =
-            await requisicao(
-                "/admin/sites"
-            );
-
-        body.innerHTML = "";
-
-
-        document.getElementById(
-            "totalSites"
-        ).textContent =
-            sites.length;
-
-
-        if (
-            !sites ||
-            sites.length === 0
-        ) {
-
-            body.innerHTML = `
-                <tr>
-                    <td
-                        colspan="5"
-                        class="empty"
-                    >
-                        Nenhum site cadastrado.
-                    </td>
-                </tr>
-            `;
-
-        } else {
-
-            sites.forEach(
-                site => {
-
-                    const tr =
-                        document.createElement(
-                            "tr"
-                        );
-
-
-                    tr.innerHTML = `
-
-                        <td>
-                            ${escapeHtml(
-                                site.id
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                site.nome
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                site.url
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                site.usuario_nome
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                site.usuario_email
-                            )}
-                        </td>
-
-                    `;
-
-
-                    body.appendChild(
-                        tr
-                    );
-
-                }
-            );
-
-        }
-
-
-    } catch (erro) {
-
-        mostrarErro(
-            erro.message
-        );
-
-        body.innerHTML = `
-            <tr>
-                <td
-                    colspan="5"
-                    class="empty"
-                >
-                    Não foi possível carregar os sites.
-                </td>
-            </tr>
-        `;
-
-    } finally {
-
-        loading.style.display =
-            "none";
-
-    }
-
-}
-
-
-// ==========================================================
-// SSL
-// ==========================================================
-
-async function carregarSSL() {
-
-    const loading =
-        document.getElementById(
-            "sslLoading"
-        );
-
-    const body =
-        document.getElementById(
-            "sslBody"
-        );
-
-    loading.style.display =
-        "block";
-
-
-    try {
-
-        const historico =
-            await requisicao(
-                "/admin/ssl-history"
-            );
-
-        body.innerHTML = "";
-
-
-        if (
-            !historico ||
-            historico.length === 0
-        ) {
-
-            body.innerHTML = `
-                <tr>
-                    <td
-                        colspan="5"
-                        class="empty"
-                    >
-                        Nenhum registro SSL encontrado.
-                    </td>
-                </tr>
-            `;
-
-        } else {
-
-            historico.forEach(
-                item => {
-
-                    const tr =
-                        document.createElement(
-                            "tr"
-                        );
-
-
-                    const valido =
-                        Number(
-                            item.valido
-                        ) === 1 ||
-                        item.valido === true;
-
-
-                    tr.innerHTML = `
-
-                        <td>
-                            ${escapeHtml(
-                                item.dominio
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                item.ip
-                            )}
-                        </td>
-
-                        <td>
-
-                            ${
-                                valido
-
-                                ?
-
-                                `
-                                <span
-                                    class="badge badge-active"
-                                >
-                                    Válido
-                                </span>
-                                `
-
-                                :
-
-                                `
-                                <span
-                                    class="badge badge-blocked"
-                                >
-                                    Inválido
-                                </span>
-                                `
-                            }
-
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                item.data_expiracao
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                item.dias_restantes
-                            )}
-                        </td>
-
-                    `;
-
-
-                    body.appendChild(
-                        tr
-                    );
-
-                }
-            );
-
-        }
-
-
-    } catch (erro) {
-
-        mostrarErro(
-            erro.message
-        );
-
-        body.innerHTML = `
-            <tr>
-                <td
-                    colspan="5"
-                    class="empty"
-                >
-                    Não foi possível carregar o histórico SSL.
-                </td>
-            </tr>
-        `;
-
-    } finally {
-
-        loading.style.display =
-            "none";
-
-    }
-
-}
-
-
-// ==========================================================
-// AUDITORIA
-// ==========================================================
-
-async function carregarAuditoria() {
-
-    const loading =
-        document.getElementById(
-            "auditLoading"
-        );
-
-    const body =
-        document.getElementById(
-            "auditBody"
-        );
-
-    loading.style.display =
-        "block";
-
-
-    try {
-
-        const logs =
-            await requisicao(
-                "/admin/audit-logs"
-            );
-
-        body.innerHTML = "";
-
-
-        if (
-            !logs ||
-            logs.length === 0
-        ) {
-
-            body.innerHTML = `
-                <tr>
-                    <td
-                        colspan="6"
-                        class="empty"
-                    >
-                        Nenhum registro de auditoria.
-                    </td>
-                </tr>
-            `;
-
-        } else {
-
-            logs.forEach(
-                log => {
-
-                    const tr =
-                        document.createElement(
-                            "tr"
-                        );
-
-
-                    const detalhes =
-                        log.detalhes ||
-                        log.descricao ||
-                        "";
-
-
-                    const data =
-                        log.data_hora ||
-                        log.data ||
-                        "";
-
-
-                    tr.innerHTML = `
-
-                        <td>
-                            ${escapeHtml(
-                                log.id
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                log.usuario_email ||
-                                log.usuario_id ||
-                                ""
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                log.acao
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                detalhes
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                log.ip ||
-                                ""
-                            )}
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                data
-                            )}
-                        </td>
-
-                    `;
-
-
-                    body.appendChild(
-                        tr
-                    );
-
-                }
-            );
-
-        }
-
-
-    } catch (erro) {
-
-        mostrarErro(
-            erro.message
-        );
-
-        body.innerHTML = `
-            <tr>
-                <td
-                    colspan="6"
-                    class="empty"
-                >
-                    Não foi possível carregar a auditoria.
-                </td>
-            </tr>
-        `;
-
-    } finally {
-
-        loading.style.display =
-            "none";
-
-    }
-
-}
-
-
-// ==========================================================
-// SEGURANÇA - ESCAPAR HTML
-// ==========================================================
-
-function escapeHtml(
-    valor
-) {
-
-    if (
-        valor === null ||
-        valor === undefined
-    ) {
-
-        return "";
-
-    }
-
-
-    return String(
-        valor
-    )
-        .replaceAll(
-            "&",
-            "&amp;"
-        )
-        .replaceAll(
-            "<",
-            "&lt;"
-        )
-        .replaceAll(
-            ">",
-            "&gt;"
-        )
-        .replaceAll(
-            '"',
-            "&quot;"
-        )
-        .replaceAll(
-            "'",
-            "&#039;"
-        );
-
-}
-
-
-// ==========================================================
-// SEGURANÇA - ESCAPAR JAVASCRIPT
-// ==========================================================
-
-function escapeJs(
-    valor
-) {
-
-    if (
-        valor === null ||
-        valor === undefined
-    ) {
-
-        return "";
-
-    }
-
-
-    return String(
-        valor
-    )
-        .replaceAll(
-            "\\",
-            "\\\\"
-        )
-        .replaceAll(
-            "'",
-            "\\'"
-        )
-        .replaceAll(
-            "\n",
-            "\\n"
-        )
-        .replaceAll(
-            "\r",
-            "\\r"
-        );
-
-}
-
-
-// ==========================================================
-// INICIALIZAÇÃO
-// ==========================================================
-
-async function inicializarPainel() {
-
-    await carregarUsuarios();
-
-    await carregarSites();
-
-    await carregarSSL();
-
-    await carregarAuditoria();
-
-}
-
-
-inicializarPainel();
-
+carregarUsuarios();
+carregarSites();
+carregarMetricasAdmin();
 
 </script>
-
 
 </body>
 
