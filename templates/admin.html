@@ -437,6 +437,49 @@ td {
 }
 
 </style>
+<style id="role-actions-css">
+
+.role-action-cell {
+    text-align: center;
+    white-space: nowrap;
+    min-width: 190px;
+}
+
+.role-action-btn {
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 9px 13px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s ease;
+}
+
+.role-action-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.1);
+}
+
+.role-promote {
+    background: rgba(38, 190, 130, .12);
+    border-color: rgba(38, 190, 130, .28);
+    color: #42e6aa;
+}
+
+.role-demote {
+    background: rgba(240, 150, 70, .12);
+    border-color: rgba(240, 150, 70, .28);
+    color: #ffb46b;
+}
+
+.role-current {
+    background: rgba(60, 130, 240, .10);
+    border-color: rgba(60, 130, 240, .20);
+    color: #7db5ff;
+    cursor: default;
+}
+
+</style>
 </head>
 
 <body>
@@ -959,8 +1002,208 @@ async function alterarPerfil(userId, novoRole, pergunta) {
 }
 
 </script>
+<script id="role-actions-script">
+
+(function () {
+
+    function iniciarGerenciamentoUsuarios() {
+
+        const tabelas = document.querySelectorAll("table");
+
+        tabelas.forEach(function (tabela) {
+
+            const linhas = tabela.querySelectorAll("tr");
+
+            if (!linhas.length) return;
+
+            let linhaCabecalho = null;
+
+            // Procura a linha que contém "Perfil" e "Status"
+            linhas.forEach(function (linha) {
+
+                if (linhaCabecalho) return;
+
+                const texto = linha.innerText
+                    .toLowerCase()
+                    .replace(/\s+/g, " ");
+
+                if (
+                    texto.includes("perfil") &&
+                    texto.includes("status")
+                ) {
+                    linhaCabecalho = linha;
+                }
+            });
+
+            if (!linhaCabecalho) return;
+
+            // Não duplicar a coluna
+            if (!linhaCabecalho.querySelector(".role-actions-header")) {
+
+                const th = document.createElement("th");
+
+                th.className = "role-actions-header";
+                th.innerText = "Ações";
+                th.style.textAlign = "center";
+                th.style.minWidth = "190px";
+
+                linhaCabecalho.appendChild(th);
+            }
+
+            // Pega todas as linhas de usuários
+            linhas.forEach(function (linha) {
+
+                if (linha === linhaCabecalho) return;
+
+                if (linha.querySelector(".role-action-cell")) return;
+
+                const celulas = linha.querySelectorAll("td");
+
+                if (celulas.length < 5) return;
+
+                const id = celulas[0].innerText.trim();
+
+                // ID precisa ser numérico
+                if (!/^\d+$/.test(id)) return;
+
+                const nome = celulas[1].innerText.trim();
+                const email = celulas[2].innerText.trim();
+                const perfil = celulas[3].innerText.trim().toLowerCase();
+
+                const novaCelula = document.createElement("td");
+                novaCelula.className = "role-action-cell";
+
+                const botao = document.createElement("button");
+
+                botao.className = "role-action-btn";
+
+                if (perfil === "admin") {
+
+                    // Administrador
+                    if (email === "admin@cloudmonitor.local") {
+
+                        botao.classList.add("role-current");
+                        botao.innerText = "✓ Admin atual";
+                        botao.disabled = true;
+
+                        botao.title =
+                            "O administrador principal não pode remover a própria função.";
+
+                    } else {
+
+                        botao.classList.add("role-demote");
+                        botao.innerText = "↩ Remover admin";
+
+                        botao.onclick = function () {
+
+                            alterarRole(
+                                id,
+                                "user",
+                                "Remover o privilégio de administrador de " +
+                                nome +
+                                "?"
+                            );
+                        };
+                    }
+
+                } else {
+
+                    // Usuário comum
+                    botao.classList.add("role-promote");
+                    botao.innerText = "👑 Promover a admin";
+
+                    botao.onclick = function () {
+
+                        alterarRole(
+                            id,
+                            "admin",
+                            "Promover " +
+                            nome +
+                            " para administrador?"
+                        );
+                    };
+                }
+
+                novaCelula.appendChild(botao);
+                linha.appendChild(novaCelula);
+            });
+
+        });
+    }
+
+
+    async function alterarRole(id, role, confirmacao) {
+
+        if (!window.confirm(confirmacao)) {
+            return;
+        }
+
+        try {
+
+            const resposta = await fetch(
+                "/admin/api/usuarios/" + id + "/role",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        role: role
+                    })
+                }
+            );
+
+            const dados = await resposta.json();
+
+            if (!resposta.ok || !dados.sucesso) {
+
+                window.alert(
+                    "Não foi possível alterar o perfil.\n\n" +
+                    (dados.erro || "Erro desconhecido.")
+                );
+
+                return;
+            }
+
+            window.alert(
+                "Perfil atualizado com sucesso!"
+            );
+
+            window.location.reload();
+
+        } catch (erro) {
+
+            console.error(erro);
+
+            window.alert(
+                "Erro de conexão com o servidor."
+            );
+        }
+    }
+
+
+    // Executa quando a página carregar
+    if (document.readyState === "loading") {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            iniciarGerenciamentoUsuarios
+        );
+
+    } else {
+
+        iniciarGerenciamentoUsuarios();
+
+    }
+
+})();
+
+</script>
 </body>
 
 </html>
+
 
 
