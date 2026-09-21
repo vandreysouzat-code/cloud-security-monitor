@@ -685,6 +685,59 @@ def register():
 # LOGOUT
 # ============================================================
 
+@app.route("/admin/api/usuarios/<int:user_id>/reset-password", methods=["POST"])
+@admin_required
+def admin_resetar_senha(user_id):
+
+    dados = request.get_json(silent=True) or {}
+    nova_senha = str(dados.get("senha", "")).strip()
+
+    if len(nova_senha) < 6:
+        return jsonify({
+            "sucesso": False,
+            "erro": "A senha deve possuir pelo menos 6 caracteres."
+        }), 400
+
+    usuario_atual = usuario_logado()
+
+    if usuario_atual and int(usuario_atual["id"]) == user_id:
+        return jsonify({
+            "sucesso": False,
+            "erro": "Não altere sua própria senha por esta função."
+        }), 400
+
+    with conectar() as conn:
+
+        usuario = conn.execute(
+            "SELECT id, nome, email FROM users WHERE id = ?",
+            (user_id,)
+        ).fetchone()
+
+        if not usuario:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Usuário não encontrado."
+            }), 404
+
+        senha_hash = generate_password_hash(nova_senha)
+
+        conn.execute(
+            "UPDATE users SET senha_hash = ?, ativo = 1 WHERE id = ?",
+            (senha_hash, user_id)
+        )
+
+        conn.commit()
+
+    return jsonify({
+        "sucesso": True,
+        "mensagem": "Senha redefinida com sucesso.",
+        "usuario": {
+            "id": usuario["id"],
+            "nome": usuario["nome"],
+            "email": usuario["email"]
+        }
+    }), 200
+
 @app.route("/logout", methods=["GET", "POST"])
 def logout():
 
@@ -1479,4 +1532,5 @@ if __name__ == "__main__":
         port=porta,
         debug=False
     )
+
 

@@ -735,6 +735,61 @@ carregarMetricasAdmin();
 
 </script>
 
+<div style="margin:30px 0;padding:20px;background:#f5f7fb;border:1px solid #ddd;border-radius:12px;">
+    <strong>🔐 Recuperação de acesso</strong>
+    <p style="margin:8px 0 15px;">
+        Redefina a senha do usuário Victor Andrey.
+    </p>
+    <button
+        type="button"
+        onclick="resetarSenhaVictor()"
+        style="padding:10px 16px;border:0;border-radius:8px;cursor:pointer;"
+    >
+        Redefinir senha do Victor
+    </button>
+</div>
+
+<script>
+async function resetarSenhaVictor() {
+
+    const senha = prompt(
+        "Digite uma nova senha para Victor Andrey (mínimo 6 caracteres):"
+    );
+
+    if (!senha) return;
+
+    if (senha.length < 6) {
+        alert("A senha precisa ter pelo menos 6 caracteres.");
+        return;
+    }
+
+    const resposta = await fetch(
+        "/admin/api/usuarios/2/reset-password",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                senha: senha
+            })
+        }
+    );
+
+    const dados = await resposta.json();
+
+    if (!resposta.ok || !dados.sucesso) {
+        alert("Erro: " + (dados.erro || "Não foi possível redefinir a senha."));
+        return;
+    }
+
+    alert(
+        "Senha do Victor redefinida com sucesso!\n\n" +
+        "E-mail: vandrey.souzat@gmail.com"
+    );
+}
+</script>
 </body>
 
 </html>
+
