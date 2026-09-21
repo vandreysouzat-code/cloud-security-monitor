@@ -191,6 +191,11 @@ button {
         </div>
 
         <form method="POST">
+            <input
+                type="hidden"
+                name="csrf_token"
+                value="{{ csrf_token }}"
+            >
 
             <label for="senha">
                 Nova senha
@@ -221,3 +226,4 @@ button {
 
 </body>
 </html>
+
