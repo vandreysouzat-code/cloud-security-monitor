@@ -385,6 +385,58 @@ td {
 
 </style>
 
+<style id="admin-role-controls">
+
+.admin-actions-header {
+    width: 230px;
+    text-align: center;
+}
+
+.admin-actions {
+    text-align: center;
+    white-space: nowrap;
+}
+
+.admin-role-btn {
+    border: 0;
+    border-radius: 8px;
+    padding: 9px 13px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: .2s;
+}
+
+.admin-role-btn:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.08);
+}
+
+.admin-promote {
+    background: rgba(38, 180, 130, .14);
+    color: #42e6aa;
+    border: 1px solid rgba(38, 180, 130, .25);
+}
+
+.admin-demote {
+    background: rgba(240, 150, 70, .12);
+    color: #ffb46b;
+    border: 1px solid rgba(240, 150, 70, .25);
+}
+
+.admin-self {
+    opacity: .45;
+    cursor: not-allowed;
+}
+
+.admin-role-status {
+    display: block;
+    margin-top: 5px;
+    font-size: 10px;
+    color: #73839a;
+}
+
+</style>
 </head>
 
 <body>
@@ -735,61 +787,180 @@ carregarMetricasAdmin();
 
 </script>
 
-<div style="margin:30px 0;padding:20px;background:#f5f7fb;border:1px solid #ddd;border-radius:12px;">
-    <strong>🔐 Recuperação de acesso</strong>
-    <p style="margin:8px 0 15px;">
-        Redefina a senha do usuário Victor Andrey.
-    </p>
-    <button
-        type="button"
-        onclick="resetarSenhaVictor()"
-        style="padding:10px 16px;border:0;border-radius:8px;cursor:pointer;"
-    >
-        Redefinir senha do Victor
-    </button>
-</div>
 
-<script>
-async function resetarSenhaVictor() {
+<script id="admin-role-controls-script">
 
-    const senha = prompt(
-        "Digite uma nova senha para Victor Andrey (mínimo 6 caracteres):"
-    );
+document.addEventListener("DOMContentLoaded", function () {
 
-    if (!senha) return;
+    const tables = document.querySelectorAll("table");
 
-    if (senha.length < 6) {
-        alert("A senha precisa ter pelo menos 6 caracteres.");
-        return;
-    }
+    tables.forEach(function (table) {
 
-    const resposta = await fetch(
-        "/admin/api/usuarios/2/reset-password",
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                senha: senha
-            })
+        const headers = table.querySelectorAll("thead th");
+
+        if (!headers.length) return;
+
+        let usuarioTable = false;
+
+        headers.forEach(function (header) {
+            const texto = header.innerText.trim().toLowerCase();
+
+            if (
+                texto === "id" ||
+                texto === "nome" ||
+                texto === "e-mail" ||
+                texto === "perfil" ||
+                texto === "status"
+            ) {
+                usuarioTable = true;
+            }
+        });
+
+        if (!usuarioTable) return;
+
+        // Evita criar a coluna duas vezes.
+        if (!table.querySelector(".admin-actions-header")) {
+
+            const headerRow = table.querySelector("thead tr");
+
+            if (headerRow) {
+                const th = document.createElement("th");
+                th.className = "admin-actions-header";
+                th.innerText = "Ações";
+                headerRow.appendChild(th);
+            }
         }
-    );
 
-    const dados = await resposta.json();
+        const rows = table.querySelectorAll("tbody tr");
 
-    if (!resposta.ok || !dados.sucesso) {
-        alert("Erro: " + (dados.erro || "Não foi possível redefinir a senha."));
+        rows.forEach(function (row) {
+
+            if (row.querySelector(".admin-actions")) return;
+
+            const cells = row.querySelectorAll("td");
+
+            if (cells.length < 5) return;
+
+            const userId = cells[0].innerText.trim();
+            const role = cells[3].innerText.trim().toLowerCase();
+
+            if (!/^\d+$/.test(userId)) return;
+
+            const actionCell = document.createElement("td");
+            actionCell.className = "admin-actions";
+
+            const button = document.createElement("button");
+            button.className = "admin-role-btn";
+
+            // Administrador
+            if (role === "admin") {
+
+                button.innerText = "↩ Remover admin";
+                button.classList.add("admin-demote");
+
+                // Não permitir remover o próprio acesso.
+                const currentEmail = document.body.innerText.includes(
+                    "admin@cloudmonitor.local"
+                );
+
+                const rowEmail = cells[2].innerText.trim();
+
+                if (
+                    currentEmail &&
+                    rowEmail === "admin@cloudmonitor.local"
+                ) {
+                    button.disabled = true;
+                    button.classList.add("admin-self");
+                    button.innerText = "✓ Admin atual";
+                    button.title = "O administrador atual não pode remover a própria função.";
+                }
+
+                button.onclick = function () {
+                    alterarPerfil(
+                        userId,
+                        "user",
+                        "Remover privilégio de administrador de " +
+                        cells[1].innerText.trim() +
+                        "?"
+                    );
+                };
+
+            } else {
+
+                // Usuário normal
+                button.innerText = "👑 Promover a admin";
+                button.classList.add("admin-promote");
+
+                button.onclick = function () {
+                    alterarPerfil(
+                        userId,
+                        "admin",
+                        "Promover " +
+                        cells[1].innerText.trim() +
+                        " para administrador?"
+                    );
+                };
+            }
+
+            actionCell.appendChild(button);
+            row.appendChild(actionCell);
+        });
+    });
+});
+
+
+async function alterarPerfil(userId, novoRole, pergunta) {
+
+    if (!confirm(pergunta)) {
         return;
     }
 
-    alert(
-        "Senha do Victor redefinida com sucesso!\n\n" +
-        "E-mail: vandrey.souzat@gmail.com"
-    );
+    try {
+
+        const resposta = await fetch(
+            "/admin/api/usuarios/" + userId + "/role",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    role: novoRole
+                })
+            }
+        );
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.sucesso) {
+
+            alert(
+                "Não foi possível alterar o perfil.\n\n" +
+                (dados.erro || "Erro desconhecido.")
+            );
+
+            return;
+        }
+
+        alert(
+            "Perfil atualizado com sucesso.\n\n" +
+            "Novo perfil: " +
+            (novoRole === "admin" ? "Administrador" : "Usuário")
+        );
+
+        window.location.reload();
+
+    } catch (erro) {
+
+        alert(
+            "Erro de conexão ao alterar o perfil."
+        );
+    }
 }
+
 </script>
 </body>
 
 </html>
+
 

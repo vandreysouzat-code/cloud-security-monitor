@@ -1534,3 +1534,57 @@ if __name__ == "__main__":
     )
 
 
+
+@app.route("/admin/api/usuarios/<int:user_id>/role", methods=["POST"])
+@admin_required
+def admin_alterar_role(user_id):
+
+    dados = request.get_json(silent=True) or {}
+    role = str(dados.get("role", "")).strip().lower()
+
+    if role not in ("user", "admin"):
+        return jsonify({
+            "sucesso": False,
+            "erro": "Perfil inválido."
+        }), 400
+
+    usuario_atual = usuario_logado()
+
+    # Não permite que o administrador retire a própria função.
+    if usuario_atual and int(usuario_atual["id"]) == user_id and role != "admin":
+        return jsonify({
+            "sucesso": False,
+            "erro": "O administrador atual não pode remover a própria função."
+        }), 400
+
+    with conectar() as conn:
+
+        usuario = conn.execute(
+            "SELECT id, nome, email, role FROM users WHERE id = ?",
+            (user_id,)
+        ).fetchone()
+
+        if not usuario:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Usuário não encontrado."
+            }), 404
+
+        conn.execute(
+            "UPDATE users SET role = ?, ativo = 1 WHERE id = ?",
+            (role, user_id)
+        )
+
+        conn.commit()
+
+    return jsonify({
+        "sucesso": True,
+        "mensagem": "Perfil atualizado com sucesso.",
+        "usuario": {
+            "id": usuario["id"],
+            "nome": usuario["nome"],
+            "email": usuario["email"],
+            "role": role
+        }
+    }), 200
+
