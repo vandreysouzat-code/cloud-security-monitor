@@ -1,298 +1,333 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>
-        Cadastro — Cloud Security Monitor
-    </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Criar conta — Cloud Security Monitor</title>
 
     <style>
-
         * {
             box-sizing: border-box;
         }
 
         body {
-
             margin: 0;
-
             min-height: 100vh;
-
+            font-family: Arial, Helvetica, sans-serif;
+            background:
+                radial-gradient(circle at 15% 20%, rgba(30, 100, 220, .18), transparent 30%),
+                radial-gradient(circle at 85% 80%, rgba(0, 190, 220, .12), transparent 30%),
+                #050b17;
+            color: #f4f7fb;
             display: flex;
-
             align-items: center;
-
             justify-content: center;
-
-            font-family:
-                Arial,
-                Helvetica,
-                sans-serif;
-
-            background: #f5f7fb;
-
-            color: #1f2937;
+            padding: 30px;
         }
 
         .container {
-
             width: 100%;
-
-            max-width: 430px;
-
-            padding: 20px;
+            max-width: 1170px;
+            min-height: 680px;
+            display: grid;
+            grid-template-columns: 1.25fr .9fr;
+            background: #0d1628;
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow: 0 30px 80px rgba(0,0,0,.45);
         }
 
-        .card {
-
-            background: white;
-
-            border-radius: 20px;
-
-            padding: 40px;
-
-            box-shadow:
-                0 10px 35px
-                rgba(0,0,0,0.08);
+        .brand {
+            padding: 75px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background:
+                linear-gradient(135deg, rgba(22,52,105,.75), rgba(7,18,38,.95));
         }
 
         .logo {
-
-            text-align: center;
-
-            margin-bottom: 30px;
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 34px;
+            margin-bottom: 28px;
+            background: linear-gradient(135deg, #2875ef, #12b9d8);
+            box-shadow: 0 12px 30px rgba(25,130,255,.25);
         }
 
-        .icon {
-
-            font-size: 48px;
-
-            margin-bottom: 10px;
-        }
-
-        h1 {
-
+        .brand h1 {
             margin: 0;
+            font-size: 48px;
+            line-height: 1.05;
+            letter-spacing: -1.5px;
+        }
 
-            font-size: 26px;
+        .brand h1 span {
+            color: #43aaf5;
+        }
 
-            color: #111827;
+        .brand p {
+            max-width: 590px;
+            margin: 30px 0 0;
+            color: #aebbd0;
+            font-size: 18px;
+            line-height: 1.7;
+        }
+
+        .features {
+            margin-top: 38px;
+            display: grid;
+            gap: 18px;
+        }
+
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: #dbe5f3;
+            font-size: 15px;
+        }
+
+        .check {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(16, 190, 130, .16);
+            color: #25d49b;
+            font-weight: bold;
+        }
+
+        .form-area {
+            padding: 55px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(9,17,32,.78);
+        }
+
+        .form-box {
+            width: 100%;
+            max-width: 430px;
+        }
+
+        .form-box h2 {
+            margin: 0;
+            font-size: 34px;
+            letter-spacing: -.7px;
         }
 
         .subtitle {
-
-            margin-top: 8px;
-
-            color: #6b7280;
-
-            font-size: 14px;
+            margin: 10px 0 30px;
+            color: #7787a0;
+            font-size: 15px;
+            line-height: 1.5;
         }
 
-        .form-group {
-
-            margin-bottom: 20px;
+        .alert {
+            padding: 13px 15px;
+            border-radius: 10px;
+            margin-bottom: 18px;
+            background: rgba(220, 70, 70, .12);
+            border: 1px solid rgba(220, 70, 70, .25);
+            color: #ff9d9d;
+            font-size: 14px;
         }
 
         label {
-
             display: block;
-
-            margin-bottom: 8px;
-
+            margin: 19px 0 8px;
+            color: #dce5f1;
             font-size: 14px;
-
-            font-weight: bold;
-
-            color: #374151;
+            font-weight: 600;
         }
 
         input {
-
             width: 100%;
-
-            padding: 14px;
-
-            border: 1px solid #d1d5db;
-
-            border-radius: 10px;
-
+            height: 54px;
+            padding: 0 16px;
+            border-radius: 12px;
+            border: 1px solid #263650;
+            background: #0b1425;
+            color: #f5f8fc;
             font-size: 15px;
-
             outline: none;
+            transition: .2s;
+        }
+
+        input::placeholder {
+            color: #64738b;
         }
 
         input:focus {
-
-            border-color: #2563eb;
-
-            box-shadow:
-                0 0 0 3px
-                rgba(37,99,235,0.1);
+            border-color: #2984ee;
+            box-shadow: 0 0 0 3px rgba(41,132,238,.12);
         }
 
-        button {
-
-            width: 100%;
-
-            padding: 14px;
-
-            border: none;
-
-            border-radius: 10px;
-
-            background: #2563eb;
-
-            color: white;
-
-            font-size: 16px;
-
-            font-weight: bold;
-
-            cursor: pointer;
-        }
-
-        button:hover {
-
-            background: #1d4ed8;
-        }
-
-        .erro {
-
-            background: #fee2e2;
-
-            color: #dc2626;
-
-            padding: 12px;
-
-            border-radius: 10px;
-
-            margin-bottom: 20px;
-
-            font-size: 14px;
-
-            text-align: center;
-        }
-
-        .login {
-
-            text-align: center;
-
-            margin-top: 20px;
-
-            font-size: 14px;
-
-            color: #6b7280;
-        }
-
-        .login a {
-
-            color: #2563eb;
-
-            text-decoration: none;
-
-            font-weight: bold;
-        }
-
-        .footer {
-
-            text-align: center;
-
-            margin-top: 20px;
-
-            color: #9ca3af;
-
+        .password-info {
+            margin-top: 8px;
+            color: #64738b;
             font-size: 12px;
         }
 
-    </style>
+        button {
+            width: 100%;
+            height: 56px;
+            margin-top: 28px;
+            border: 0;
+            border-radius: 13px;
+            background: linear-gradient(90deg, #286eea, #0ca9c9);
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 12px 28px rgba(20,120,230,.22);
+            transition: .2s;
+        }
 
+        button:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.08);
+        }
+
+        .login-link {
+            margin-top: 22px;
+            text-align: center;
+            color: #73839a;
+            font-size: 14px;
+        }
+
+        .login-link a {
+            color: #42aaf5;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .login-link a:hover {
+            text-decoration: underline;
+        }
+
+        .footer {
+            margin-top: 32px;
+            text-align: center;
+            color: #53647c;
+            font-size: 12px;
+        }
+
+        @media (max-width: 850px) {
+            body {
+                padding: 15px;
+            }
+
+            .container {
+                grid-template-columns: 1fr;
+                min-height: auto;
+            }
+
+            .brand {
+                padding: 40px 30px;
+            }
+
+            .brand h1 {
+                font-size: 38px;
+            }
+
+            .form-area {
+                padding: 40px 30px;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
 <div class="container">
 
-    <div class="card">
+    <section class="brand">
 
-        <div class="logo">
+        <div class="logo">🛡️</div>
 
-            <div class="icon">
-                ☁️
+        <h1>
+            Cloud Security<br>
+            <span>Monitor</span>
+        </h1>
+
+        <p>
+            Crie sua conta e comece a monitorar seus serviços,
+            acompanhar disponibilidade, desempenho, incidentes
+            e certificados SSL em um único ambiente.
+        </p>
+
+        <div class="features">
+
+            <div class="feature">
+                <div class="check">✓</div>
+                <span>Monitoramento contínuo</span>
             </div>
 
-            <h1>
-                Criar sua conta
-            </h1>
+            <div class="feature">
+                <div class="check">✓</div>
+                <span>Histórico de disponibilidade</span>
+            </div>
 
-            <p class="subtitle">
-                Cloud Security Monitor
-            </p>
+            <div class="feature">
+                <div class="check">✓</div>
+                <span>Monitoramento SSL</span>
+            </div>
+
+            <div class="feature">
+                <div class="check">✓</div>
+                <span>Indicadores de performance</span>
+            </div>
 
         </div>
 
+    </section>
 
-        {% if erro %}
+    <section class="form-area">
 
-        <div class="erro">
-            {{ erro }}
-        </div>
+        <div class="form-box">
 
-        {% endif %}
+            <h2>Criar sua conta</h2>
 
+            <div class="subtitle">
+                Cadastre-se para acessar o seu ambiente de monitoramento.
+            </div>
 
-        <form
-            method="POST"
-            action="/register"
-        >
+            {% if mensagem %}
+                <div class="alert">{{ mensagem }}</div>
+            {% endif %}
 
-            <div class="form-group">
+            <form method="POST" action="/register">
 
-                <label for="nome">
-                    Nome
-                </label>
-
+                <label for="nome">Nome</label>
                 <input
                     id="nome"
                     name="nome"
                     type="text"
-                    placeholder="Seu nome"
+                    placeholder="Seu nome completo"
                     required
+                    autocomplete="name"
                 >
 
-            </div>
-
-
-            <div class="form-group">
-
-                <label for="email">
-                    E-mail
-                </label>
-
+                <label for="email">E-mail</label>
                 <input
                     id="email"
                     name="email"
                     type="email"
                     placeholder="seu@email.com"
                     required
+                    autocomplete="email"
                 >
 
-            </div>
-
-
-            <div class="form-group">
-
-                <label for="senha">
-                    Senha
-                </label>
-
+                <label for="senha">Senha</label>
                 <input
                     id="senha"
                     name="senha"
@@ -300,41 +335,58 @@
                     placeholder="Crie uma senha"
                     minlength="6"
                     required
+                    autocomplete="new-password"
                 >
 
+                <div class="password-info">
+                    A senha deve possuir pelo menos 6 caracteres.
+                </div>
+
+                <label for="confirmar_senha">Confirmar senha</label>
+                <input
+                    id="confirmar_senha"
+                    name="confirmar_senha"
+                    type="password"
+                    placeholder="Digite a senha novamente"
+                    minlength="6"
+                    required
+                    autocomplete="new-password"
+                >
+
+                <button type="submit">
+                    Criar minha conta
+                </button>
+
+            </form>
+
+            <div class="login-link">
+                Já possui uma conta?
+                <a href="/login">Entrar no sistema</a>
             </div>
 
-
-            <button type="submit">
-
-                Criar conta
-
-            </button>
-
-        </form>
-
-
-        <div class="login">
-
-            Já possui uma conta?
-
-            <a href="/login">
-                Entrar
-            </a>
+            <div class="footer">
+                🔒 Conexão protegida • Cloud Security Monitor
+            </div>
 
         </div>
 
-    </div>
-
-
-    <div class="footer">
-
-        Cloud Security Monitor · Segurança e monitoramento
-
-    </div>
+    </section>
 
 </div>
 
-</body>
+<script>
+document.querySelector("form").addEventListener("submit", function(event) {
 
+    const senha = document.getElementById("senha").value;
+    const confirmar = document.getElementById("confirmar_senha").value;
+
+    if (senha !== confirmar) {
+        event.preventDefault();
+        alert("As senhas não são iguais.");
+    }
+
+});
+</script>
+
+</body>
 </html>
