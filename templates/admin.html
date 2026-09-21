@@ -831,357 +831,9 @@ carregarMetricasAdmin();
 </script>
 
 
-<script id="admin-role-controls-script">
 
-document.addEventListener("DOMContentLoaded", function () {
 
-    const tables = document.querySelectorAll("table");
 
-    tables.forEach(function (table) {
-
-        const headers = table.querySelectorAll("thead th");
-
-        if (!headers.length) return;
-
-        let usuarioTable = false;
-
-        headers.forEach(function (header) {
-            const texto = header.innerText.trim().toLowerCase();
-
-            if (
-                texto === "id" ||
-                texto === "nome" ||
-                texto === "e-mail" ||
-                texto === "perfil" ||
-                texto === "status"
-            ) {
-                usuarioTable = true;
-            }
-        });
-
-        if (!usuarioTable) return;
-
-        // Evita criar a coluna duas vezes.
-        if (!table.querySelector(".admin-actions-header")) {
-
-            const headerRow = table.querySelector("thead tr");
-
-            if (headerRow) {
-                const th = document.createElement("th");
-                th.className = "admin-actions-header";
-                th.innerText = "Ações";
-                headerRow.appendChild(th);
-            }
-        }
-
-        const rows = table.querySelectorAll("tbody tr");
-
-        rows.forEach(function (row) {
-
-            if (row.querySelector(".admin-actions")) return;
-
-            const cells = row.querySelectorAll("td");
-
-            if (cells.length < 5) return;
-
-            const userId = cells[0].innerText.trim();
-            const role = cells[3].innerText.trim().toLowerCase();
-
-            if (!/^\d+$/.test(userId)) return;
-
-            const actionCell = document.createElement("td");
-            actionCell.className = "admin-actions";
-
-            const button = document.createElement("button");
-            button.className = "admin-role-btn";
-
-            // Administrador
-            if (role === "admin") {
-
-                button.innerText = "↩ Remover admin";
-                button.classList.add("admin-demote");
-
-                // Não permitir remover o próprio acesso.
-                const currentEmail = document.body.innerText.includes(
-                    "admin@cloudmonitor.local"
-                );
-
-                const rowEmail = cells[2].innerText.trim();
-
-                if (
-                    currentEmail &&
-                    rowEmail === "admin@cloudmonitor.local"
-                ) {
-                    button.disabled = true;
-                    button.classList.add("admin-self");
-                    button.innerText = "✓ Admin atual";
-                    button.title = "O administrador atual não pode remover a própria função.";
-                }
-
-                button.onclick = function () {
-                    alterarPerfil(
-                        userId,
-                        "user",
-                        "Remover privilégio de administrador de " +
-                        cells[1].innerText.trim() +
-                        "?"
-                    );
-                };
-
-            } else {
-
-                // Usuário normal
-                button.innerText = "👑 Promover a admin";
-                button.classList.add("admin-promote");
-
-                button.onclick = function () {
-                    alterarPerfil(
-                        userId,
-                        "admin",
-                        "Promover " +
-                        cells[1].innerText.trim() +
-                        " para administrador?"
-                    );
-                };
-            }
-
-            actionCell.appendChild(button);
-            row.appendChild(actionCell);
-        });
-    });
-});
-
-
-async function alterarPerfil(userId, novoRole, pergunta) {
-
-    if (!confirm(pergunta)) {
-        return;
-    }
-
-    try {
-
-        const resposta = await fetch(
-            "/admin/api/usuarios/" + userId + "/role",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    role: novoRole
-                })
-            }
-        );
-
-        const dados = await resposta.json();
-
-        if (!resposta.ok || !dados.sucesso) {
-
-            alert(
-                "Não foi possível alterar o perfil.\n\n" +
-                (dados.erro || "Erro desconhecido.")
-            );
-
-            return;
-        }
-
-        alert(
-            "Perfil atualizado com sucesso.\n\n" +
-            "Novo perfil: " +
-            (novoRole === "admin" ? "Administrador" : "Usuário")
-        );
-
-        window.location.reload();
-
-    } catch (erro) {
-
-        alert(
-            "Erro de conexão ao alterar o perfil."
-        );
-    }
-}
-
-</script>
-
-<script id="role-actions-script">
-
-document.addEventListener("DOMContentLoaded", function () {
-
-    iniciarGerenciamentoUsuarios();
-
-});
-
-function iniciarGerenciamentoUsuarios() {
-
-    const tabela = document.getElementById("usuariosTabela");
-
-    if (!tabela) {
-        console.error("Tabela de usuários não encontrada.");
-        return;
-    }
-
-    const cabecalho = tabela.closest("table")?.querySelector("thead");
-
-    if (cabecalho) {
-
-        const linha = cabecalho.querySelector("tr");
-
-        if (linha && !linha.querySelector(".role-actions-header")) {
-
-            const th = document.createElement("th");
-
-            th.className = "role-actions-header";
-            th.innerText = "Ações";
-
-            linha.appendChild(th);
-        }
-    }
-
-    atualizarBotoesUsuarios();
-}
-
-function atualizarBotoesUsuarios() {
-
-    const tabela = document.getElementById("usuariosTabela");
-
-    if (!tabela) return;
-
-    const linhas = tabela.querySelectorAll("tr");
-
-    linhas.forEach(function (linha) {
-
-        if (linha.querySelector(".role-action-cell")) {
-            return;
-        }
-
-        const celulas = linha.querySelectorAll("td");
-
-        if (celulas.length < 4) {
-            return;
-        }
-
-        const id = celulas[0].innerText.trim();
-        const nome = celulas[1].innerText.trim();
-        const perfil = celulas[3].innerText.trim().toLowerCase();
-
-        if (!id || !/^\d+$/.test(id)) {
-            return;
-        }
-
-        const novaCelula = document.createElement("td");
-
-        novaCelula.className = "role-action-cell";
-
-        const botao = document.createElement("button");
-
-        botao.type = "button";
-        botao.className = "role-action-btn";
-
-        if (perfil === "admin") {
-
-            botao.innerText = "⬇ Remover admin";
-            botao.classList.add("role-demote");
-
-            botao.onclick = function () {
-
-                alterarRole(
-                    id,
-                    "user",
-                    "Remover o privilégio de administrador de " + nome + "?"
-                );
-
-            };
-
-        } else {
-
-            botao.innerText = "👑 Promover a admin";
-            botao.classList.add("role-promote");
-
-            botao.onclick = function () {
-
-                alterarRole(
-                    id,
-                    "admin",
-                    "Promover " + nome + " para administrador?"
-                );
-
-            };
-        }
-
-        novaCelula.appendChild(botao);
-        linha.appendChild(novaCelula);
-    });
-}
-
-async function alterarRole(id, role, confirmacao) {
-
-    if (!confirm(confirmacao)) {
-        return;
-    }
-
-    try {
-
-        const csrfResponse = await fetch("/api/csrf-token", {
-            method: "GET",
-            credentials: "same-origin"
-        });
-
-        const csrfData = await csrfResponse.json();
-
-        const csrfToken = csrfData.csrf_token;
-
-        if (!csrfToken) {
-            alert("Não foi possível obter o token de segurança.");
-            return;
-        }
-
-        const resposta = await fetch(
-            "/admin/api/usuarios/" + id + "/role",
-            {
-                method: "POST",
-                credentials: "same-origin",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-Token": csrfToken
-                },
-                body: JSON.stringify({
-                    role: role,
-                    csrf_token: csrfToken
-                })
-            }
-        );
-
-        const dados = await resposta.json();
-
-        if (!resposta.ok || dados.sucesso === false) {
-
-            alert(
-                "Não foi possível alterar o perfil.\n\n" +
-                (dados.erro || "Erro desconhecido.")
-            );
-
-            return;
-        }
-
-        alert(
-            "Perfil atualizado com sucesso!\n\n" +
-            "Novo perfil: " +
-            (role === "admin" ? "Administrador" : "Usuário")
-        );
-
-        location.reload();
-
-    } catch (erro) {
-
-        console.error(erro);
-
-        alert(
-            "Erro de conexão ao alterar o perfil."
-        );
-    }
-}
-
-</script>
 <div style="
     margin-top:25px;
     padding:18px;
@@ -1216,9 +868,238 @@ async function alterarRole(id, role, confirmacao) {
         Recuperar conta do Victor
     </a>
 </div>
+<script id="role-actions-final">
+
+(function () {
+
+    function adicionarAcoes() {
+
+        const tabela = document.getElementById("usuariosTabela");
+
+        if (!tabela) {
+            return;
+        }
+
+        const table = tabela.closest("table");
+
+        if (!table) {
+            return;
+        }
+
+        const cabecalho = table.querySelector("thead tr");
+
+        if (cabecalho && !cabecalho.querySelector(".role-actions-header")) {
+
+            const th = document.createElement("th");
+
+            th.className = "role-actions-header";
+            th.innerText = "Ações";
+
+            cabecalho.appendChild(th);
+        }
+
+        const linhas = tabela.querySelectorAll("tr");
+
+        linhas.forEach(function (linha) {
+
+            if (linha.querySelector(".role-action-cell")) {
+                return;
+            }
+
+            const celulas = linha.querySelectorAll("td");
+
+            if (celulas.length < 4) {
+                return;
+            }
+
+            const id = celulas[0].innerText.trim();
+            const nome = celulas[1].innerText.trim();
+            const perfil = celulas[3].innerText.trim().toLowerCase();
+
+            if (!/^\d+$/.test(id)) {
+                return;
+            }
+
+            const td = document.createElement("td");
+
+            td.className = "role-action-cell";
+
+            const botao = document.createElement("button");
+
+            botao.type = "button";
+            botao.className = "role-action-btn";
+
+            botao.style.padding = "8px 12px";
+            botao.style.border = "0";
+            botao.style.borderRadius = "7px";
+            botao.style.cursor = "pointer";
+            botao.style.fontWeight = "600";
+
+            if (perfil === "admin") {
+
+                botao.innerText = "⬇ Remover admin";
+
+                botao.style.background = "#fff1f0";
+                botao.style.color = "#b42318";
+
+                botao.onclick = function () {
+
+                    alterarPerfilAdmin(
+                        id,
+                        "user",
+                        "Remover o privilégio de administrador de " + nome + "?"
+                    );
+
+                };
+
+            } else {
+
+                botao.innerText = "👑 Promover a admin";
+
+                botao.style.background = "#eef4ff";
+                botao.style.color = "#175cd3";
+
+                botao.onclick = function () {
+
+                    alterarPerfilAdmin(
+                        id,
+                        "admin",
+                        "Promover " + nome + " para administrador?"
+                    );
+
+                };
+            }
+
+            td.appendChild(botao);
+            linha.appendChild(td);
+        });
+    }
+
+
+    async function alterarPerfilAdmin(id, role, pergunta) {
+
+        if (!confirm(pergunta)) {
+            return;
+        }
+
+        try {
+
+            const csrfResponse = await fetch(
+                "/api/csrf-token",
+                {
+                    method: "GET",
+                    credentials: "same-origin"
+                }
+            );
+
+            const csrfData = await csrfResponse.json();
+
+            const csrfToken = csrfData.csrf_token;
+
+            if (!csrfToken) {
+
+                alert("Não foi possível obter o token de segurança.");
+
+                return;
+            }
+
+
+            const resposta = await fetch(
+                "/admin/api/usuarios/" + id + "/role",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRF-Token": csrfToken
+                    },
+
+                    body: JSON.stringify({
+                        role: role,
+                        csrf_token: csrfToken
+                    })
+                }
+            );
+
+
+            const dados = await resposta.json();
+
+
+            if (!resposta.ok || dados.sucesso === false) {
+
+                alert(
+                    "Não foi possível alterar o perfil.\n\n" +
+                    (dados.erro || "Erro desconhecido.")
+                );
+
+                return;
+            }
+
+
+            alert(
+                "Perfil atualizado com sucesso!"
+            );
+
+            window.location.reload();
+
+        } catch (erro) {
+
+            console.error(erro);
+
+            alert(
+                "Erro de conexão ao alterar o perfil."
+            );
+        }
+    }
+
+
+    function iniciar() {
+
+        adicionarAcoes();
+
+        const tabela = document.getElementById("usuariosTabela");
+
+        if (!tabela) {
+            return;
+        }
+
+        const observer = new MutationObserver(function () {
+
+            adicionarAcoes();
+
+        });
+
+        observer.observe(
+            tabela,
+            {
+                childList: true,
+                subtree: true
+            }
+        );
+    }
+
+
+    if (document.readyState === "loading") {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            iniciar
+        );
+
+    } else {
+
+        iniciar();
+
+    }
+
+})();
+
+</script>
 </body>
 
 </html>
+
 
 
 
