@@ -1588,3 +1588,51 @@ def admin_alterar_role(user_id):
         }
     }), 200
 
+
+@app.route("/admin/recuperar-victor", methods=["GET", "POST"])
+@admin_required
+def admin_recuperar_victor():
+
+    user_id = 2
+
+    if request.method == "POST":
+
+        nova_senha = str(request.form.get("senha", "")).strip()
+
+        if len(nova_senha) < 6:
+            return render_template(
+                "admin_recovery.html",
+                erro="A senha precisa ter pelo menos 6 caracteres."
+            )
+
+        with conectar() as conn:
+
+            usuario = conn.execute(
+                "SELECT id, nome, email FROM users WHERE id = ?",
+                (user_id,)
+            ).fetchone()
+
+            if not usuario:
+                return render_template(
+                    "admin_recovery.html",
+                    erro="Usuário Victor Andrey não encontrado."
+                )
+
+            senha_hash = generate_password_hash(nova_senha)
+
+            conn.execute(
+                "UPDATE users SET senha_hash = ?, ativo = 1 WHERE id = ?",
+                (senha_hash, user_id)
+            )
+
+            conn.commit()
+
+        return render_template(
+            "admin_recovery.html",
+            sucesso=True,
+            usuario=usuario
+        )
+
+    return render_template("admin_recovery.html")
+
+

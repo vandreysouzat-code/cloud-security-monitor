@@ -1,0 +1,223 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Recuperar acesso — Cloud Security Monitor</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Arial, Helvetica, sans-serif;
+    background:
+        radial-gradient(circle at 15% 20%, rgba(30,100,220,.18), transparent 30%),
+        radial-gradient(circle at 85% 80%, rgba(0,190,220,.12), transparent 30%),
+        #050b17;
+    color: #f4f7fb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 25px;
+}
+
+.card {
+    width: 100%;
+    max-width: 520px;
+    background: #0d1628;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 22px;
+    padding: 42px;
+    box-shadow: 0 30px 80px rgba(0,0,0,.45);
+}
+
+.logo {
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    background: linear-gradient(135deg,#2875ef,#12b9d8);
+    margin-bottom: 25px;
+}
+
+h1 {
+    margin: 0;
+    font-size: 29px;
+}
+
+.subtitle {
+    color: #7787a0;
+    margin: 10px 0 28px;
+    line-height: 1.5;
+}
+
+.user {
+    padding: 16px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.035);
+    border: 1px solid rgba(255,255,255,.07);
+    margin-bottom: 25px;
+}
+
+.user strong {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.user span {
+    color: #7f90a8;
+    font-size: 14px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+input {
+    width: 100%;
+    height: 52px;
+    border-radius: 11px;
+    border: 1px solid #263650;
+    background: #091322;
+    color: white;
+    padding: 0 15px;
+    font-size: 15px;
+    outline: none;
+}
+
+input:focus {
+    border-color: #2984ee;
+    box-shadow: 0 0 0 3px rgba(41,132,238,.12);
+}
+
+button {
+    width: 100%;
+    height: 54px;
+    margin-top: 20px;
+    border: 0;
+    border-radius: 12px;
+    background: linear-gradient(90deg,#286eea,#0ca9c9);
+    color: white;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.success {
+    padding: 15px;
+    border-radius: 11px;
+    background: rgba(25,190,130,.10);
+    border: 1px solid rgba(25,190,130,.25);
+    color: #48e4aa;
+    margin-bottom: 20px;
+}
+
+.error {
+    padding: 15px;
+    border-radius: 11px;
+    background: rgba(220,70,70,.10);
+    border: 1px solid rgba(220,70,70,.25);
+    color: #ff9999;
+    margin-bottom: 20px;
+}
+
+.back {
+    display: block;
+    text-align: center;
+    margin-top: 22px;
+    color: #42aaf5;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+    <div class="logo">🔐</div>
+
+    <h1>Recuperar acesso</h1>
+
+    <div class="subtitle">
+        Redefinição administrativa de credenciais.
+    </div>
+
+    {% if sucesso %}
+
+        <div class="success">
+            ✓ Senha redefinida com sucesso.
+            <br><br>
+            O usuário já pode entrar novamente no sistema.
+        </div>
+
+        <div class="user">
+            <strong>Victor Andrey</strong>
+            <span>vandrey.souzat@gmail.com</span>
+        </div>
+
+        <a class="back" href="/admin">
+            ← Voltar para administração
+        </a>
+
+    {% else %}
+
+        {% if erro %}
+            <div class="error">
+                {{ erro }}
+            </div>
+        {% endif %}
+
+        <div class="user">
+            <strong>Victor Andrey</strong>
+            <span>vandrey.souzat@gmail.com</span>
+        </div>
+
+        <form method="POST">
+
+            <label for="senha">
+                Nova senha
+            </label>
+
+            <input
+                id="senha"
+                name="senha"
+                type="password"
+                minlength="6"
+                required
+                placeholder="Digite uma nova senha"
+            >
+
+            <button type="submit">
+                Redefinir senha
+            </button>
+
+        </form>
+
+        <a class="back" href="/admin">
+            ← Voltar para administração
+        </a>
+
+    {% endif %}
+
+</div>
+
+</body>
+</html>
