@@ -194,7 +194,7 @@ button {
             <input
                 type="hidden"
                 name="csrf_token"
-                value="{{ csrf_token }}"
+                value="{{ session.get("csrf_token", "") }}"
             >
 
             <label for="senha">
@@ -226,4 +226,5 @@ button {
 
 </body>
 </html>
+
 

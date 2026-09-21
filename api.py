@@ -1593,6 +1593,9 @@ def admin_alterar_role(user_id):
 @admin_required
 def admin_recuperar_victor():
 
+    # Garante que o token CSRF exista na sessão
+    obter_token_csrf()
+
     user_id = 2
 
     if request.method == "POST":
