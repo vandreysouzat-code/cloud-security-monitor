@@ -1,4 +1,4 @@
-﻿import os
+import os
 import secrets
 from datetime import timedelta
 from functools import wraps
@@ -275,112 +275,67 @@ def login_required(func):
 
 
 def admin_required(func):
-    """
-    Exige usuário autenticado com role admin.
-    Consulta o perfil diretamente no banco para evitar
-    inconsistência entre sessão e banco de dados.
-    """
-
     @wraps(func)
     def wrapper(*args, **kwargs):
-
         usuario_id = session.get("usuario_id")
 
         if not usuario_id:
-            if request.path.startswith("/api/") or request.is_json:
-                return jsonify({
-                    "sucesso": False,
-                    "erro": "Autenticação necessária."
-                }), 401
-
-            return redirect(url_for("login"))
-
-        try:
-
-            with conectar() as conn:
-
-                usuario = conn.execute(
-                    """
-                    SELECT
-                        id,
-                        nome,
-                        email,
-                        role,
-                        ativo
-                    FROM users
-                    WHERE id = ?
-                    """,
-                    (usuario_id,)
-                ).fetchone()
-
-        except Exception as erro:
-
-            print(
-                f"[ADMIN] Erro ao consultar usuário {usuario_id}: {erro}"
-            )
-
             return jsonify({
                 "sucesso": False,
-                "erro": "Erro interno ao verificar autorização administrativa."
-            }), 500
-
-        if not usuario:
-
-            session.clear()
-
-            if request.path.startswith("/api/") or request.is_json:
-                return jsonify({
-                    "sucesso": False,
-                    "erro": "Usuário não encontrado."
-                }), 401
-
-            return redirect(url_for("login"))
+                "erro": "Autenticacao necessaria."
+            }), 401
 
         try:
-            ativo = usuario["ativo"]
-        except Exception:
-            ativo = 1
+            conn = conectar()
+            try:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "SELECT id, nome, email, role, ativo FROM users WHERE id = ?",
+                    (int(usuario_id),)
+                )
+                usuario = cursor.fetchone()
+            finally:
+                conn.close()
 
-        if ativo in (False, 0, "0"):
-
-            session.clear()
-
-            if request.path.startswith("/api/") or request.is_json:
+            if not usuario:
+                session.clear()
                 return jsonify({
                     "sucesso": False,
-                    "erro": "Usuário desativado."
+                    "erro": "Usuario nao encontrado."
+                }), 401
+
+            if isinstance(usuario, dict):
+                role = usuario.get("role")
+                ativo = usuario.get("ativo", 1)
+            else:
+                role = usuario[3]
+                ativo = usuario[4]
+
+            if ativo in (0, False, "0"):
+                session.clear()
+                return jsonify({
+                    "sucesso": False,
+                    "erro": "Usuario desativado."
                 }), 403
 
-            return redirect(url_for("login"))
+            if str(role or "").strip().lower() != "admin":
+                return jsonify({
+                    "sucesso": False,
+                    "erro": "Acesso administrativo nao autorizado."
+                }), 403
 
-        try:
-            role = str(usuario["role"] or "").strip().lower()
-        except Exception:
-            role = ""
+            return func(*args, **kwargs)
 
-        if role != "admin":
-
-            print(
-                f"[ADMIN] Acesso negado: usuario_id={usuario_id}, role={role}"
-            )
-
+        except Exception as e:
+            print(f"[ADMIN_REQUIRED] {type(e).__name__}: {e}")
             return jsonify({
                 "sucesso": False,
-                "erro": "Acesso administrativo não autorizado."
-            }), 403
-
-        return func(*args, **kwargs)
+                "erro": "Erro interno ao verificar autorizacao administrativa."
+            }), 500
 
     return wrapper
 
-registrar_rotas_billing(app, login_required)
 
-
-# ============================================================
-# LOGIN
-# ============================================================
-
-@app.route("/login", methods=["GET", "POST"])
 def login():
 
     if request.method == "GET":
