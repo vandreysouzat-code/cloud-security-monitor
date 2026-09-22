@@ -330,7 +330,7 @@ def admin_required(func):
             print(f"[ADMIN_REQUIRED] {type(e).__name__}: {e}")
             return jsonify({
                 "sucesso": False,
-                "erro": "Erro interno ao verificar autorizacao administrativa."
+                "erro": f"ADMIN DEBUG: {type(e).__name__}: {e}"
             }), 500
 
     return wrapper
