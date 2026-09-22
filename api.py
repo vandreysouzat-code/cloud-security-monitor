@@ -41,7 +41,7 @@ from billing import registrar_rotas as registrar_rotas_billing
 
 
 # ============================================================
-# CONFIGURAÃ‡ÃƒO
+# CONFIGURAÃƒâ€¡ÃƒÆ’O
 # ============================================================
 
 
@@ -86,7 +86,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 
 if PRODUCAO and not SECRET_KEY:
     raise RuntimeError(
-        "SECRET_KEY nÃ£o configurada. Defina a variÃ¡vel SECRET_KEY no ambiente."
+        "SECRET_KEY nÃƒÂ£o configurada. Defina a variÃƒÂ¡vel SECRET_KEY no ambiente."
     )
 
 if not SECRET_KEY:
@@ -123,8 +123,8 @@ METODOS_QUE_EXIGEM_CSRF = {
 
 def obter_token_csrf():
     """
-    ObtÃ©m o token CSRF da sessÃ£o.
-    Caso ainda nÃ£o exista, cria um novo.
+    ObtÃƒÂ©m o token CSRF da sessÃƒÂ£o.
+    Caso ainda nÃƒÂ£o exista, cria um novo.
     """
 
     token = session.get("csrf_token")
@@ -149,7 +149,7 @@ def validar_csrf():
     if request.method not in METODOS_QUE_EXIGEM_CSRF:
         return True
 
-    # Login e cadastro nÃ£o dependem de uma sessÃ£o anterior.
+    # Login e cadastro nÃƒÂ£o dependem de uma sessÃƒÂ£o anterior.
     if request.path in ("/login", "/register"):
         return True
 
@@ -209,19 +209,19 @@ def proteger_contra_csrf():
     if request.path.startswith("/api/") or request.is_json:
         return jsonify({
             "sucesso": False,
-            "erro": "Token CSRF invÃ¡lido ou ausente."
+            "erro": "Token CSRF invÃƒÂ¡lido ou ausente."
         }), 403
 
-    return "Token CSRF invÃ¡lido ou ausente.", 403
+    return "Token CSRF invÃƒÂ¡lido ou ausente.", 403
 
 
 # ============================================================
-# AUTENTICAÃ‡ÃƒO
+# AUTENTICAÃƒâ€¡ÃƒÆ’O
 # ============================================================
 
 def usuario_logado():
     """
-    Retorna o usuÃ¡rio atualmente autenticado.
+    Retorna o usuÃƒÂ¡rio atualmente autenticado.
     """
 
     usuario_id = session.get("usuario_id")
@@ -251,7 +251,7 @@ def usuario_logado():
 
 def login_required(func):
     """
-    Exige usuÃ¡rio autenticado.
+    Exige usuÃƒÂ¡rio autenticado.
     """
 
     @wraps(func)
@@ -264,10 +264,10 @@ def login_required(func):
             if request.path.startswith("/api/") or request.is_json:
                 return jsonify({
                     "sucesso": False,
-                    "erro": "AutenticaÃ§Ã£o necessÃ¡ria."
+                    "erro": "AutenticaÃƒÂ§ÃƒÂ£o necessÃƒÂ¡ria."
                 }), 401
 
-            return redirect(url_for("login"))
+            return redirect("/login")
 
         return func(*args, **kwargs)
 
@@ -336,6 +336,7 @@ def admin_required(func):
     return wrapper
 
 
+@app.route("/login", methods=["GET", "POST"])
 def login():
 
     if request.method == "GET":
@@ -365,12 +366,12 @@ def login():
         if request.is_json:
             return jsonify({
                 "sucesso": False,
-                "erro": "E-mail e senha sÃ£o obrigatÃ³rios."
+                "erro": "E-mail e senha sÃƒÂ£o obrigatÃƒÂ³rios."
             }), 400
 
         return render_template(
             "login.html",
-            erro="E-mail e senha sÃ£o obrigatÃ³rios."
+            erro="E-mail e senha sÃƒÂ£o obrigatÃƒÂ³rios."
         ), 400
 
     try:
@@ -378,7 +379,7 @@ def login():
 
     except Exception as erro:
 
-        print(f"Erro ao buscar usuÃ¡rio: {erro}")
+        print(f"Erro ao buscar usuÃƒÂ¡rio: {erro}")
         usuario = None
 
     if not usuario:
@@ -386,12 +387,12 @@ def login():
         if request.is_json:
             return jsonify({
                 "sucesso": False,
-                "erro": "E-mail ou senha invÃ¡lidos."
+                "erro": "E-mail ou senha invÃƒÂ¡lidos."
             }), 401
 
         return render_template(
             "login.html",
-            erro="E-mail ou senha invÃ¡lidos."
+            erro="E-mail ou senha invÃƒÂ¡lidos."
         ), 401
 
     if isinstance(usuario, dict):
@@ -425,12 +426,12 @@ def login():
         if request.is_json:
             return jsonify({
                 "sucesso": False,
-                "erro": "UsuÃ¡rio inativo."
+                "erro": "UsuÃƒÂ¡rio inativo."
             }), 403
 
         return render_template(
             "login.html",
-            erro="UsuÃ¡rio inativo."
+            erro="UsuÃƒÂ¡rio inativo."
         ), 403
 
     senha_valida = False
@@ -457,16 +458,16 @@ def login():
         if request.is_json:
             return jsonify({
                 "sucesso": False,
-                "erro": "E-mail ou senha invÃ¡lidos."
+                "erro": "E-mail ou senha invÃƒÂ¡lidos."
             }), 401
 
         return render_template(
             "login.html",
-            erro="E-mail ou senha invÃ¡lidos."
+            erro="E-mail ou senha invÃƒÂ¡lidos."
         ), 401
 
     # ========================================================
-    # CRIAR SESSÃƒO
+    # CRIAR SESSÃƒÆ’O
     # ========================================================
 
     session.clear()
@@ -494,7 +495,7 @@ def login():
     except Exception as erro:
 
         print(
-            f"Aviso: nÃ£o foi possÃ­vel registrar auditoria do login: {erro}"
+            f"Aviso: nÃƒÂ£o foi possÃƒÂ­vel registrar auditoria do login: {erro}"
         )
 
     # ========================================================
@@ -559,7 +560,7 @@ def register():
 
         resposta = {
             "sucesso": False,
-            "erro": "Nome, e-mail e senha sÃ£o obrigatÃ³rios."
+            "erro": "Nome, e-mail e senha sÃƒÂ£o obrigatÃƒÂ³rios."
         }
 
         if request.is_json:
@@ -592,7 +593,7 @@ def register():
     except Exception as erro:
 
         print(
-            f"Erro ao verificar usuÃ¡rio: {erro}"
+            f"Erro ao verificar usuÃƒÂ¡rio: {erro}"
         )
 
         usuario_existente = None
@@ -601,7 +602,7 @@ def register():
 
         resposta = {
             "sucesso": False,
-            "erro": "E-mail jÃ¡ cadastrado."
+            "erro": "E-mail jÃƒÂ¡ cadastrado."
         }
 
         if request.is_json:
@@ -631,12 +632,12 @@ def register():
     except Exception as erro:
 
         print(
-            f"Erro ao criar usuÃ¡rio: {erro}"
+            f"Erro ao criar usuÃƒÂ¡rio: {erro}"
         )
 
         resposta = {
             "sucesso": False,
-            "erro": "NÃ£o foi possÃ­vel criar o usuÃ¡rio."
+            "erro": "NÃƒÂ£o foi possÃƒÂ­vel criar o usuÃƒÂ¡rio."
         }
 
         if request.is_json:
@@ -662,13 +663,13 @@ def register():
         registrar_auditoria(
             usuario_id=usuario_id,
             acao="REGISTER",
-            detalhes=f"Novo usuÃ¡rio cadastrado: {email}"
+            detalhes=f"Novo usuÃƒÂ¡rio cadastrado: {email}"
         )
 
     except Exception as erro:
 
         print(
-            f"Aviso: nÃ£o foi possÃ­vel registrar auditoria do cadastro: {erro}"
+            f"Aviso: nÃƒÂ£o foi possÃƒÂ­vel registrar auditoria do cadastro: {erro}"
         )
 
     resposta = {
@@ -714,7 +715,7 @@ def admin_resetar_senha(user_id):
     if usuario_atual and int(usuario_atual["id"]) == user_id:
         return jsonify({
             "sucesso": False,
-            "erro": "Não altere sua própria senha por esta função."
+            "erro": "NÃ£o altere sua prÃ³pria senha por esta funÃ§Ã£o."
         }), 400
 
     with conectar() as conn:
@@ -727,7 +728,7 @@ def admin_resetar_senha(user_id):
         if not usuario:
             return jsonify({
                 "sucesso": False,
-                "erro": "Usuário não encontrado."
+                "erro": "UsuÃ¡rio nÃ£o encontrado."
             }), 404
 
         senha_hash = generate_password_hash(nova_senha)
@@ -777,18 +778,18 @@ def logout():
         return jsonify({
             "sucesso": True,
             "mensagem": "Logout realizado.",
-            "redirect": url_for("login")
+            "redirect": "/login"
         })
 
     session.clear()
 
     return redirect(
-        url_for("login")
+        "/login"
     )
 
 
 # ============================================================
-# PÃGINA PRINCIPAL
+# PÃƒÂGINA PRINCIPAL
 # ============================================================
 
 @app.route("/")
@@ -797,7 +798,7 @@ def index():
     if usuario_logado():
         return redirect(url_for("dashboard"))
 
-    return redirect(url_for("login"))
+    return redirect("/login")
 
 
 # ============================================================
@@ -817,7 +818,7 @@ def dashboard():
 
 
 # ============================================================
-# USUÃRIO AUTENTICADO
+# USUÃƒÂRIO AUTENTICADO
 # ============================================================
 
 @app.route("/api/me", methods=["GET"])
@@ -830,7 +831,7 @@ def api_me():
         "id": usuario["id"],
         "nome": usuario["nome"],
         "email": usuario["email"],
-        "role": usuario.get("role", "user"),
+        "role": usuario["role"] if "role" in usuario.keys() else "user",
         "ativo": usuario.get("ativo", 1),
     })
 
@@ -883,7 +884,7 @@ def api_listar_sites():
         if not usuario:
             return jsonify({
                 "sucesso": False,
-                "erro": "UsuÃ¡rio nÃ£o autenticado."
+                "erro": "UsuÃƒÂ¡rio nÃƒÂ£o autenticado."
             }), 401
 
         sites = listar_sites(usuario["id"])
@@ -933,14 +934,14 @@ def api_criar_site():
 
         return jsonify({
             "sucesso": False,
-            "erro": "Nome do site Ã© obrigatÃ³rio."
+            "erro": "Nome do site ÃƒÂ© obrigatÃƒÂ³rio."
         }), 400
 
     if not url:
 
         return jsonify({
             "sucesso": False,
-            "erro": "URL do site Ã© obrigatÃ³ria."
+            "erro": "URL do site ÃƒÂ© obrigatÃƒÂ³ria."
         }), 400
 
     if not (
@@ -950,7 +951,7 @@ def api_criar_site():
 
         return jsonify({
             "sucesso": False,
-            "erro": "A URL deve comeÃ§ar com http:// ou https://."
+            "erro": "A URL deve comeÃƒÂ§ar com http:// ou https://."
         }), 400
 
     try:
@@ -977,7 +978,7 @@ def api_criar_site():
 
         return jsonify({
             "sucesso": False,
-            "erro": "NÃ£o foi possÃ­vel adicionar o site."
+            "erro": "NÃƒÂ£o foi possÃƒÂ­vel adicionar o site."
         }), 500
 
     try:
@@ -991,7 +992,7 @@ def api_criar_site():
     except Exception as erro:
 
         print(
-            f"Aviso: nÃ£o foi possÃ­vel registrar auditoria do site: {erro}"
+            f"Aviso: nÃƒÂ£o foi possÃƒÂ­vel registrar auditoria do site: {erro}"
         )
 
     return jsonify({
@@ -1016,12 +1017,12 @@ def api_obter_site(site_id):
 
         return jsonify({
             "sucesso": False,
-            "erro": "Site nÃ£o encontrado."
+            "erro": "Site nÃƒÂ£o encontrado."
         }), 404
 
     return jsonify({
         "sucesso": True,
-        "site": site
+        "site": dict(site) if site is not None else None
     })
 
 
@@ -1040,7 +1041,7 @@ def api_excluir_site(site_id):
 
         return jsonify({
             "sucesso": False,
-            "erro": "Site nÃ£o encontrado."
+            "erro": "Site nÃƒÂ£o encontrado."
         }), 404
 
     try:
@@ -1064,7 +1065,7 @@ def api_excluir_site(site_id):
 
         return jsonify({
             "sucesso": False,
-            "erro": "NÃ£o foi possÃ­vel excluir o site."
+            "erro": "NÃƒÂ£o foi possÃƒÂ­vel excluir o site."
         }), 500
 
     try:
@@ -1072,18 +1073,18 @@ def api_excluir_site(site_id):
         registrar_auditoria(
             usuario_id=usuario["id"],
             acao="SITE_EXCLUIDO",
-            detalhes=f"Site excluÃ­do: {site_id}"
+            detalhes=f"Site excluÃƒÂ­do: {site_id}"
         )
 
     except Exception as erro:
 
         print(
-            f"Aviso: nÃ£o foi possÃ­vel registrar auditoria: {erro}"
+            f"Aviso: nÃƒÂ£o foi possÃƒÂ­vel registrar auditoria: {erro}"
         )
 
     return jsonify({
         "sucesso": True,
-        "mensagem": "Site excluÃ­do com sucesso."
+        "mensagem": "Site excluÃƒÂ­do com sucesso."
     })
 
 
@@ -1109,7 +1110,7 @@ def api_monitoramentos(site_id):
 
         return jsonify({
             "sucesso": False,
-            "erro": "Site nÃ£o encontrado."
+            "erro": "Site nÃƒÂ£o encontrado."
         }), 404
 
     try:
@@ -1150,7 +1151,7 @@ def api_incidentes(site_id):
 
         return jsonify({
             "sucesso": False,
-            "erro": "Site nÃ£o encontrado."
+            "erro": "Site nÃƒÂ£o encontrado."
         }), 404
 
     try:
@@ -1191,7 +1192,7 @@ def api_ssl_alertas(site_id):
 
         return jsonify({
             "sucesso": False,
-            "erro": "Site nÃ£o encontrado."
+            "erro": "Site nÃƒÂ£o encontrado."
         }), 404
 
     try:
@@ -1211,7 +1212,7 @@ def api_ssl_alertas(site_id):
 
 
 # ============================================================
-# MÃ‰TRICAS
+# MÃƒâ€°TRICAS
 # ============================================================
 
 @app.route(
@@ -1232,7 +1233,7 @@ def api_metricas(site_id):
 
         return jsonify({
             "sucesso": False,
-            "erro": "Site nÃ£o encontrado."
+            "erro": "Site nÃƒÂ£o encontrado."
         }), 404
 
     try:
@@ -1286,7 +1287,7 @@ def api_ssl(site_id):
 
         return jsonify({
             "sucesso": False,
-            "erro": "Site nÃ£o encontrado."
+            "erro": "Site nÃƒÂ£o encontrado."
         }), 404
 
     try:
@@ -1448,10 +1449,10 @@ def pagina_nao_encontrada(erro):
 
         return jsonify({
             "sucesso": False,
-            "erro": "Recurso nÃ£o encontrado."
+            "erro": "Recurso nÃƒÂ£o encontrado."
         }), 404
 
-    return "PÃ¡gina nÃ£o encontrada.", 404
+    return "PÃƒÂ¡gina nÃƒÂ£o encontrada.", 404
 
 
 @app.errorhandler(500)
@@ -1472,7 +1473,7 @@ def erro_interno(erro):
 
 
 # ============================================================
-# CABEÃ‡ALHOS DE SEGURANÃ‡A
+# CABEÃƒâ€¡ALHOS DE SEGURANÃƒâ€¡A
 # ============================================================
 
 @app.after_request
@@ -1496,7 +1497,7 @@ def adicionar_headers_seguranca(response):
 
 
 # ============================================================
-# INICIALIZAÃ‡ÃƒO
+# INICIALIZAÃƒâ€¡ÃƒÆ’O
 # ============================================================
 
 if __name__ == "__main__":
@@ -1514,7 +1515,7 @@ if __name__ == "__main__":
 
     print(
         "Ambiente:",
-        "PRODUÃ‡ÃƒO"
+        "PRODUÃƒâ€¡ÃƒÆ’O"
         if PRODUCAO
         else "DESENVOLVIMENTO"
     )
@@ -1528,7 +1529,7 @@ if __name__ == "__main__":
     except Exception as erro:
 
         print(
-            f"Aviso: monitoramento automÃ¡tico nÃ£o foi iniciado: {erro}"
+            f"Aviso: monitoramento automÃƒÂ¡tico nÃƒÂ£o foi iniciado: {erro}"
         )
 
     porta = int(
@@ -1546,65 +1547,83 @@ if __name__ == "__main__":
 
 
 
+
 @app.route("/admin/api/usuarios/<int:user_id>/role", methods=["POST"])
 @admin_required
 def admin_alterar_role(user_id):
+    try:
+        dados = request.get_json(silent=True) or {}
+        nova_role = str(dados.get("role", "")).strip().lower()
 
-    dados = request.get_json(silent=True) or {}
-    role = str(dados.get("role", "")).strip().lower()
-
-    if role not in ("user", "admin"):
-        return jsonify({
-            "sucesso": False,
-            "erro": "Perfil inválido."
-        }), 400
-
-    usuario_atual = usuario_logado()
-
-    # Não permite que o administrador retire a própria função.
-    if usuario_atual and int(usuario_atual["id"]) == user_id and role != "admin":
-        return jsonify({
-            "sucesso": False,
-            "erro": "O administrador atual não pode remover a própria função."
-        }), 400
-
-    with conectar() as conn:
-
-        usuario = conn.execute(
-            "SELECT id, nome, email, role FROM users WHERE id = ?",
-            (user_id,)
-        ).fetchone()
-
-        if not usuario:
+        if nova_role not in ("admin", "user"):
             return jsonify({
                 "sucesso": False,
-                "erro": "Usuário não encontrado."
-            }), 404
+                "erro": "Role inválida. Use admin ou user."
+            }), 400
 
-        conn.execute(
-            "UPDATE users SET role = ?, ativo = 1 WHERE id = ?",
-            (role, user_id)
-        )
+        usuario_atual = usuario_logado()
 
-        conn.commit()
+        if not usuario_atual:
+            return jsonify({
+                "sucesso": False,
+                "erro": "Sessão administrativa inválida."
+            }), 401
 
-    return jsonify({
-        "sucesso": True,
-        "mensagem": "Perfil atualizado com sucesso.",
-        "usuario": {
-            "id": usuario["id"],
-            "nome": usuario["nome"],
-            "email": usuario["email"],
-            "role": role
-        }
-    }), 200
+        # Impede o administrador de remover o próprio acesso.
+        if int(usuario_atual["id"]) == int(user_id):
+            return jsonify({
+                "sucesso": False,
+                "erro": "Você não pode alterar o próprio perfil administrativo."
+            }), 400
 
+        with conectar() as conn:
+            usuario = conn.execute(
+                "SELECT id, nome, email, role FROM users WHERE id = ?",
+                (user_id,)
+            ).fetchone()
+
+            if not usuario:
+                return jsonify({
+                    "sucesso": False,
+                    "erro": "Usuário não encontrado."
+                }), 404
+
+            conn.execute(
+                "UPDATE users SET role = ? WHERE id = ?",
+                (nova_role, user_id)
+            )
+
+            conn.commit()
+
+            confirmado = conn.execute(
+                "SELECT id, nome, email, role FROM users WHERE id = ?",
+                (user_id,)
+            ).fetchone()
+
+        return jsonify({
+            "sucesso": True,
+            "mensagem": "Perfil atualizado com sucesso.",
+            "usuario": {
+                "id": confirmado["id"],
+                "nome": confirmado["nome"],
+                "email": confirmado["email"],
+                "role": confirmado["role"]
+            }
+        }), 200
+
+    except Exception as e:
+        print("ERRO AO ALTERAR ROLE:", repr(e))
+        return jsonify({
+            "sucesso": False,
+            "erro": "Erro interno ao alterar o perfil.",
+            "detalhes": str(e)
+        }), 500
 
 @app.route("/admin/recuperar-victor", methods=["GET", "POST"])
 @admin_required
 def admin_recuperar_victor():
 
-    # Garante que o token CSRF exista na sessão
+    # Garante que o token CSRF exista na sessÃ£o
     obter_token_csrf()
 
     user_id = 2
@@ -1629,7 +1648,7 @@ def admin_recuperar_victor():
             if not usuario:
                 return render_template(
                     "admin_recovery.html",
-                    erro="Usuário Victor Andrey não encontrado."
+                    erro="UsuÃ¡rio Victor Andrey nÃ£o encontrado."
                 )
 
             senha_hash = generate_password_hash(nova_senha)
@@ -1648,6 +1667,8 @@ def admin_recuperar_victor():
         )
 
     return render_template("admin_recovery.html")
+
+
 
 
 
