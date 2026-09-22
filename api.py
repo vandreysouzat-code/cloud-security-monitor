@@ -276,46 +276,102 @@ def login_required(func):
 
 def admin_required(func):
     """
-    Exige usuÃ¡rio autenticado com role admin.
+    Exige usuário autenticado com role admin.
+    Consulta o perfil diretamente no banco para evitar
+    inconsistência entre sessão e banco de dados.
     """
 
     @wraps(func)
     def wrapper(*args, **kwargs):
 
-        usuario = usuario_logado()
+        usuario_id = session.get("usuario_id")
 
-        if not usuario:
-
+        if not usuario_id:
             if request.path.startswith("/api/") or request.is_json:
                 return jsonify({
                     "sucesso": False,
-                    "erro": "AutenticaÃ§Ã£o necessÃ¡ria."
+                    "erro": "Autenticação necessária."
                 }), 401
 
             return redirect(url_for("login"))
 
-        # sqlite3.Row nao possui atributos como .role.
-        # Tratamos dict, sqlite3.Row e objetos normalmente.
-        if isinstance(usuario, dict):
-            role = usuario.get("role", "")
-        else:
-            try:
-                role = usuario["role"]
-            except Exception:
-                role = getattr(usuario, "role", "")
+        try:
 
-        role = str(role).strip().lower()
+            with conectar() as conn:
 
-        if role != "admin":
+                usuario = conn.execute(
+                    """
+                    SELECT
+                        id,
+                        nome,
+                        email,
+                        role,
+                        ativo
+                    FROM users
+                    WHERE id = ?
+                    """,
+                    (usuario_id,)
+                ).fetchone()
+
+        except Exception as erro:
+
+            print(
+                f"[ADMIN] Erro ao consultar usuário {usuario_id}: {erro}"
+            )
+
             return jsonify({
                 "sucesso": False,
-                "erro": "Acesso administrativo nÃ£o autorizado."
+                "erro": "Erro interno ao verificar autorização administrativa."
+            }), 500
+
+        if not usuario:
+
+            session.clear()
+
+            if request.path.startswith("/api/") or request.is_json:
+                return jsonify({
+                    "sucesso": False,
+                    "erro": "Usuário não encontrado."
+                }), 401
+
+            return redirect(url_for("login"))
+
+        try:
+            ativo = usuario["ativo"]
+        except Exception:
+            ativo = 1
+
+        if ativo in (False, 0, "0"):
+
+            session.clear()
+
+            if request.path.startswith("/api/") or request.is_json:
+                return jsonify({
+                    "sucesso": False,
+                    "erro": "Usuário desativado."
+                }), 403
+
+            return redirect(url_for("login"))
+
+        try:
+            role = str(usuario["role"] or "").strip().lower()
+        except Exception:
+            role = ""
+
+        if role != "admin":
+
+            print(
+                f"[ADMIN] Acesso negado: usuario_id={usuario_id}, role={role}"
+            )
+
+            return jsonify({
+                "sucesso": False,
+                "erro": "Acesso administrativo não autorizado."
             }), 403
 
         return func(*args, **kwargs)
 
     return wrapper
-
 
 registrar_rotas_billing(app, login_required)
 
@@ -1637,5 +1693,6 @@ def admin_recuperar_victor():
         )
 
     return render_template("admin_recovery.html")
+
 
 
