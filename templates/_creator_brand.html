@@ -1,33 +1,35 @@
 <!-- Attribution watermark and share actions for Cloud Security Monitor -->
 <style>
+  /* Rodape real da pagina: acompanha o fim do conteudo, sem flutuar sobre a interface. */
   .csm-creator-watermark {
-    position: fixed;
-    right: 16px;
-    bottom: 14px;
-    z-index: 9999;
+    position: relative;
+    z-index: 1;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
     gap: 10px;
-    max-width: calc(100vw - 24px);
-    padding: 8px 11px;
+    width: calc(100% - 32px);
+    max-width: 1100px;
+    box-sizing: border-box;
+    margin: 28px auto 16px;
+    padding: 12px 16px;
     border: 1px solid rgba(53, 245, 161, .30);
-    border-radius: 999px;
+    border-radius: 14px;
     background: rgba(5, 12, 9, .94);
     color: #e7fff0;
     box-shadow: 0 8px 28px rgba(0, 0, 0, .20);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    font: 12px/1.2 Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+    font: 12px/1.3 Inter, system-ui, -apple-system, Segoe UI, sans-serif;
   }
   .csm-creator-watermark a {
     color: #bdf8d7;
     text-decoration: none;
-    white-space: nowrap;
+    white-space: normal;
   }
   .csm-creator-watermark a:hover { color: #35f5a1; text-decoration: underline; }
   .csm-creator-label { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
   .csm-creator-label small { color: #9ab8a7; font-size: 9px; letter-spacing: .06em; text-transform: uppercase; }
-  .csm-creator-links { display: flex; align-items: center; gap: 8px; }
+  .csm-creator-links { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
   .csm-creator-divider { width: 1px; height: 24px; background: rgba(189, 248, 215, .20); }
   .csm-creator-share {
     border: 1px solid rgba(53, 245, 161, .4);
@@ -43,16 +45,16 @@
   .csm-creator-share:hover { background: #155439; }
   .csm-creator-share:focus-visible, .csm-creator-watermark a:focus-visible { outline: 2px solid #35f5a1; outline-offset: 3px; }
   @media (max-width: 620px) {
-    .csm-creator-watermark { right: 8px; bottom: 8px; gap: 7px; padding: 7px 8px; font-size: 11px; }
+    .csm-creator-watermark { width: calc(100% - 20px); gap: 8px; padding: 10px; font-size: 11px; }
+    .csm-creator-label { flex: 1 1 150px; }
     .csm-creator-label small { font-size: 8px; }
     .csm-creator-links { gap: 6px; }
     .csm-creator-divider { display: none; }
-    .csm-creator-watermark .csm-author-linkedin { display: none; }
     .csm-creator-share { padding: 7px 9px; }
   }
 </style>
 
-<div class="csm-creator-watermark" role="contentinfo" aria-label="Autoria do Cloud Security Monitor">
+<footer class="csm-creator-watermark" role="contentinfo" aria-label="Autoria do Cloud Security Monitor">
   <div class="csm-creator-label">
     <small>Cloud Security Monitor</small>
     <a href="https://github.com/vandreysouzat-code" target="_blank" rel="noopener noreferrer" aria-label="Conheça o trabalho de Victor Andrey no GitHub">
@@ -65,7 +67,7 @@
     <a class="csm-author-linkedin" href="https://www.linkedin.com/in/vandrey/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn do autor">LinkedIn</a>
     <button type="button" class="csm-creator-share" id="csmShareProject" aria-label="Compartilhar o Cloud Security Monitor">Compartilhar ↗</button>
   </div>
-</div>
+</footer>
 
 <script>
 (function () {
