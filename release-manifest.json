@@ -1,0 +1,155 @@
+{
+  "algorithm": "Ed25519 + SHA-256",
+  "files": [
+    {
+      "path": ".dockerignore",
+      "sha256": "8036520ac4e7c7917c22077e5b2376a6467ae34f13c836469ff1e0ee78b07c24"
+    },
+    {
+      "path": ".env.example",
+      "sha256": "3913f8bfead910c2421844570b67a8b4f6d1983d7e68574c7527c2da395fade1"
+    },
+    {
+      "path": ".gitattributes",
+      "sha256": "4c82687d3fd463c29c7098d8abb81dab49dca87b0c033ca80d8b9afccce38591"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "39513d2316e00460d05be7b6a700519032f2aaf1033832b06fad56de74c08e5e"
+    },
+    {
+      "path": "Dockerfile",
+      "sha256": "bbe5c5834f412d297db404edac644b2880b64777c07e54cd20821d4f3e3bf442"
+    },
+    {
+      "path": "LICENSE",
+      "sha256": "3cd00f1fc31f3946d80f1249d3b81f42546f75c7ce0a8532035dac7010129702"
+    },
+    {
+      "path": "README.md",
+      "sha256": "b6b35f945e953359a9eaf4193194b45d40af572cd3b3a31d7a1b8ab67c66b726"
+    },
+    {
+      "path": "alerts.py",
+      "sha256": "e1f57624d5c143253bdd3b5e676a0c10102f328a41beef26b16177807fb60fe4"
+    },
+    {
+      "path": "api.py",
+      "sha256": "7295f603b4286721e16190fef8459ea95ec04ee35ab22234a4968c826534939e"
+    },
+    {
+      "path": "app.py",
+      "sha256": "0504d757de0f9b932c8f0d2f688af8100311a8ae01853cb10c479089d2e0269e"
+    },
+    {
+      "path": "billing.py",
+      "sha256": "73695e75e71363db4e612e35093d8b86e91022ca9f25928ea93418e2f7a92554"
+    },
+    {
+      "path": "compose.yaml",
+      "sha256": "430b2de964aa6d7260afc72ee0987502b818c41a11fff0f0e59579a0be9c9b4c"
+    },
+    {
+      "path": "config.py",
+      "sha256": "dfc528d01670a2a77b90e094453353a117dc74cb30526646fd90662c76088ff2"
+    },
+    {
+      "path": "criar_ssl_alertas.py",
+      "sha256": "c8aa9ab240f37f0847a00dec4694a22572e2fe8c589fffc13bac2c3338960192"
+    },
+    {
+      "path": "database.py",
+      "sha256": "632ef12c377a875531405bf901bb749f7e7b121e7b8a0c835ff95daa253de7bb"
+    },
+    {
+      "path": "email_service.py",
+      "sha256": "4b97e63e5adb3690312584160e022333655e1e63a12ef2899014479a82da6a27"
+    },
+    {
+      "path": "launch.py",
+      "sha256": "463da4ad33f27e7431dfac5e47bd1c68220957af19eaee685bfb9c741faa96ba"
+    },
+    {
+      "path": "logger.py",
+      "sha256": "2f23eb605ef4fbce5812f96ce8dd405a3c6689289e10f70a589a7f0330c29b8e"
+    },
+    {
+      "path": "metrics.py",
+      "sha256": "553296d5b2979a6cf0963fe83b4fb9816dcba979f3d1819881321f087e85f11e"
+    },
+    {
+      "path": "monitor.py",
+      "sha256": "d5e15c0dd96db7372fd5f3aa672bb63a11effb2e8f1d69e59462a3aca2b700e1"
+    },
+    {
+      "path": "release_integrity.py",
+      "sha256": "80bbc7b008d29fbad3e3e6821762e7eb95487ec3b2140a911b0803743d794b29"
+    },
+    {
+      "path": "requirements.txt",
+      "sha256": "2311df2300f6a2444e8f6dba901ce2a5cd92c28d67b332be5b474d4c1d499a93"
+    },
+    {
+      "path": "scheduler.py",
+      "sha256": "76f811d88834efb1661ccf5c8681063749d97fb10da8eb7f4a5396448fb72470"
+    },
+    {
+      "path": "security.py",
+      "sha256": "921ca98286873af9c0544354e0f828487adb6be2eb5da6faeb9d1a9a7b42c797"
+    },
+    {
+      "path": "ssl_alert_manager.py",
+      "sha256": "8c8f7892a8a06d8b427a124f8ec07137e3ee6ee917721be01f90f637cef1c589"
+    },
+    {
+      "path": "ssl_alerts.py",
+      "sha256": "df205ec5727c5ac7e58dc679f345539e9a2ee1c26eb3da6ae048a8a3ba9715c9"
+    },
+    {
+      "path": "ssl_monitor.py",
+      "sha256": "fce3ef1687be547beaf2c8e04d5f5c1bbb9b073fa592aac9472e0d3a2c56ca70"
+    },
+    {
+      "path": "templates/_creator_brand.html",
+      "sha256": "cdf3816559a6f049ebd49bcaa15551f90e44fd4ef9a53ee8f8b1701c158c60cd"
+    },
+    {
+      "path": "templates/admin.html",
+      "sha256": "9afe180c42f76b7f32278407791348184da0547992455ec461841d2c23f77cf9"
+    },
+    {
+      "path": "templates/dashboard.html",
+      "sha256": "614aba79a27cb0b6942777561d6b84c77ca1ce29f6ec55bd2cf8b7efcde0b130"
+    },
+    {
+      "path": "templates/login.html",
+      "sha256": "e7fa78943e6518a59bd9a372353f3409e0e2c93adb6a3df736fa3a1148011d9c"
+    },
+    {
+      "path": "templates/planos.html",
+      "sha256": "95c59253e72cdf35ba5dab10477c033beae5e05e3ef85a412baac27f63423066"
+    },
+    {
+      "path": "templates/register.html",
+      "sha256": "23a49d635ee1ab8e3265589236c2c7e54312f30f66a3193a2e3c60334f3a4aca"
+    },
+    {
+      "path": "tests/test_release_integrity.py",
+      "sha256": "2d0ab4f02b573b3abade4419360aa6682c3a4b8417a682e457fc99c1bd1f168e"
+    },
+    {
+      "path": "tests/test_url_safety.py",
+      "sha256": "48b07c1b158b83164bc3db1218a62d6deffc19b368e5409aedf7cdee8093258a"
+    },
+    {
+      "path": "tools/sign_release.py",
+      "sha256": "2faa86662e61e145378f5a84b971286858b2c987982025ddff562a2e4331aa93"
+    },
+    {
+      "path": "url_safety.py",
+      "sha256": "072e9d6a7b76198a29d51fcab17b8810525f8c2a4daa8547b06f3dab921443df"
+    }
+  ],
+  "project": "Cloud Security Monitor",
+  "schema_version": 1
+}

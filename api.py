@@ -3,6 +3,12 @@ import secrets
 import time
 from collections import deque
 from threading import Lock
+
+# Pin separado em api.py para impedir que trocar somente o verificador troque a chave oficial.
+OFFICIAL_RELEASE_PUBLIC_KEY_B64 = "FIWhYrETSqIRmVISiPJ7gqdpUde66LFTTsbQvv4dr8E="
+from release_integrity import verificar_integridade_release
+verificar_integridade_release(public_key_b64=OFFICIAL_RELEASE_PUBLIC_KEY_B64)
+
 from dotenv import load_dotenv
 
 load_dotenv()

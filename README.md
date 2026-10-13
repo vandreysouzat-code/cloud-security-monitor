@@ -105,7 +105,21 @@ O dashboard e as telas principais exibem **“Desenvolvido por Victor Andrey”*
 - **Repositório:** https://github.com/vandreysouzat-code/cloud-security-monitor
 - **LinkedIn:** https://www.linkedin.com/in/vandrey/
 
-A marca está incluída no código da interface, mas não é tecnicamente impossível de remover: quem modifica o próprio código pode alterar a interface. A licença abaixo estabelece as condições de atribuição para uso e redistribuição permitidos.
+A marca faz parte dos arquivos protegidos pela assinatura da versão oficial. Na inicialização, o programa valida uma assinatura Ed25519 e os hashes SHA-256 dos arquivos; se a marca ou outro arquivo protegido for alterado, removido ou acrescentado, a inicialização é bloqueada e o programa informa que a cópia não corresponde à versão oficial assinada. A licença abaixo também exige atribuição.
+
+**Limite técnico:** como o código-fonte é distribuído, uma pessoa determinada ainda pode editar o próprio verificador ou remover a checagem. Isso não torna essa cópia uma versão oficial nem concede autoria sobre o projeto original. A assinatura é uma forma de detectar adulterações comuns, não uma garantia de que qualquer modificação seja impossível.
+
+### Assinatura de releases (somente para o autor original)
+
+Na primeira publicação protegida, o autor deve executar no repositório original:
+
+```powershell
+python tools/sign_release.py --init
+```
+
+O script cria uma chave Ed25519 privada protegida por senha fora do repositório, em `~/.csm-signing/` (no Windows, `%USERPROFILE%\.csm-signing\`), fixa a chave pública no código e gera `release-manifest.json` e `release-manifest.sig`. **Nunca envie a chave privada ou sua senha ao GitHub nem compartilhe esses arquivos privados.** Faça uma cópia de segurança offline da chave privada e guarde a senha separadamente. Publique apenas o código com a chave pública fixada, o manifesto e a assinatura.
+
+Depois que a versão assinada estiver no GitHub, quem clonar o projeto não precisa da chave privada: a aplicação valida a assinatura automaticamente ao iniciar. Em futuras versões do autor, após terminar todas as alterações, use `python tools/sign_release.py --sign` com a chave oficial existente antes de fazer commit e push. Não use `--init` para substituir uma chave oficial perdida; restaure o backup da chave original.
 
 ## 🔐 Segurança e dados
 
@@ -136,6 +150,11 @@ cloud-security-monitor/
 ├── alerts.py
 ├── billing.py
 ├── url_safety.py
+├── release_integrity.py
+├── release-manifest.json       # gerado e assinado pelo autor
+├── release-manifest.sig        # assinatura da versao oficial
+├── tools/
+│   └── sign_release.py         # ferramenta do autor; nao contem a chave privada
 ├── templates/
 │   ├── dashboard.html
 │   ├── login.html
@@ -144,8 +163,11 @@ cloud-security-monitor/
 │   ├── planos.html
 │   └── _creator_brand.html
 ├── tests/
+│   ├── test_url_safety.py
+│   └── test_release_integrity.py
 ├── requirements.txt
 ├── .env.example
+├── .gitattributes
 ├── LICENSE
 └── README.md
 ```

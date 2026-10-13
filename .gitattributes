@@ -1,0 +1,11 @@
+# Make signed text files stable across Windows, Linux and macOS checkouts.
+*.py text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.txt text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+release-manifest.sig -text

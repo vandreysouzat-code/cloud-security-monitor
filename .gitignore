@@ -28,3 +28,8 @@ Thumbs.db
 
 # Cópia local extraída durante a atualização
 /cloud-security-monitor/
+# Signing keys and local credentials must never be committed
+.csm-signing/
+*.pem
+*.key
+*.p8
