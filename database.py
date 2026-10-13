@@ -30,6 +30,16 @@ if DATABASE_URL.startswith("postgres://"):
     )
 
 USANDO_POSTGRES = bool(DATABASE_URL)
+EM_PRODUCAO = (
+    os.environ.get("FLASK_ENV", "").lower() == "production"
+    or os.environ.get("RENDER", "").lower() == "true"
+    or os.environ.get("APP_ENV", "").lower() == "production"
+)
+
+if EM_PRODUCAO and not USANDO_POSTGRES:
+    raise RuntimeError(
+        "DATABASE_URL com PostgreSQL é obrigatório em produção para garantir persistência dos dados."
+    )
 
 
 # ==============================================================
@@ -716,25 +726,26 @@ def criar_banco():
             ).strip().lower()
 
             senha_admin_texto = os.environ.get(
-                "ADMIN_INITIAL_PASSWORD"
-            )
+                "ADMIN_INITIAL_PASSWORD", ""
+            ).strip()
 
-            # PostgreSQL exige senha configurada.
-            if USANDO_POSTGRES:
+            if (
+                not senha_admin_texto
+                or senha_admin_texto.upper().startswith("SUBSTITUA")
+                or senha_admin_texto.lower() in {"admin123", "password", "change-me", "changeme"}
+            ):
+                raise RuntimeError(
+                    "ADMIN_INITIAL_PASSWORD deve ser definida com uma senha própria antes da primeira inicialização."
+                )
 
-                if not senha_admin_texto:
-
-                    raise RuntimeError(
-                        "ADMIN_INITIAL_PASSWORD não foi definida. "
-                        "Configure essa variável de ambiente antes "
-                        "de iniciar a aplicação em produção."
-                    )
-
-            # SQLite mantém compatibilidade com o ambiente local.
-            else:
-
-                if not senha_admin_texto:
-                    senha_admin_texto = "admin123"
+            if EM_PRODUCAO and (
+                len(senha_admin_texto) < 12
+                or senha_admin_texto.upper().startswith("SUBSTITUA")
+                or senha_admin_texto.lower() in {"admin123", "password", "change-me", "changeme"}
+            ):
+                raise RuntimeError(
+                    "Em produção, ADMIN_INITIAL_PASSWORD deve ser única e possuir pelo menos 12 caracteres."
+                )
 
             senha_admin = generate_password_hash(
                 senha_admin_texto

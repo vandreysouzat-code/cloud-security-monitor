@@ -1,0 +1,110 @@
+<!-- Attribution watermark and share actions for Cloud Security Monitor -->
+<style>
+  .csm-creator-watermark {
+    position: fixed;
+    right: 16px;
+    bottom: 14px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: calc(100vw - 24px);
+    padding: 8px 11px;
+    border: 1px solid rgba(53, 245, 161, .30);
+    border-radius: 999px;
+    background: rgba(5, 12, 9, .94);
+    color: #e7fff0;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, .20);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    font: 12px/1.2 Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+  }
+  .csm-creator-watermark a {
+    color: #bdf8d7;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .csm-creator-watermark a:hover { color: #35f5a1; text-decoration: underline; }
+  .csm-creator-label { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .csm-creator-label small { color: #9ab8a7; font-size: 9px; letter-spacing: .06em; text-transform: uppercase; }
+  .csm-creator-links { display: flex; align-items: center; gap: 8px; }
+  .csm-creator-divider { width: 1px; height: 24px; background: rgba(189, 248, 215, .20); }
+  .csm-creator-share {
+    border: 1px solid rgba(53, 245, 161, .4);
+    border-radius: 999px;
+    padding: 7px 10px;
+    background: #103b2a;
+    color: #d8ffea;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .csm-creator-share:hover { background: #155439; }
+  .csm-creator-share:focus-visible, .csm-creator-watermark a:focus-visible { outline: 2px solid #35f5a1; outline-offset: 3px; }
+  @media (max-width: 620px) {
+    .csm-creator-watermark { right: 8px; bottom: 8px; gap: 7px; padding: 7px 8px; font-size: 11px; }
+    .csm-creator-label small { font-size: 8px; }
+    .csm-creator-links { gap: 6px; }
+    .csm-creator-divider { display: none; }
+    .csm-creator-watermark .csm-author-linkedin { display: none; }
+    .csm-creator-share { padding: 7px 9px; }
+  }
+</style>
+
+<div class="csm-creator-watermark" role="contentinfo" aria-label="Autoria do Cloud Security Monitor">
+  <div class="csm-creator-label">
+    <small>Cloud Security Monitor</small>
+    <a href="https://github.com/vandreysouzat-code" target="_blank" rel="noopener noreferrer" aria-label="Conheça o trabalho de Victor Andrey no GitHub">
+      Desenvolvido por <strong>Victor Andrey</strong>
+    </a>
+  </div>
+  <span class="csm-creator-divider" aria-hidden="true"></span>
+  <div class="csm-creator-links">
+    <a href="https://github.com/vandreysouzat-code" target="_blank" rel="noopener noreferrer" aria-label="GitHub do autor">GitHub</a>
+    <a class="csm-author-linkedin" href="https://www.linkedin.com/in/vandrey/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn do autor">LinkedIn</a>
+    <button type="button" class="csm-creator-share" id="csmShareProject" aria-label="Compartilhar o Cloud Security Monitor">Compartilhar ↗</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  const button = document.getElementById("csmShareProject");
+  if (!button || button.dataset.ready === "true") return;
+  button.dataset.ready = "true";
+
+  const projectTitle = "Cloud Security Monitor";
+  const authorGithub = "https://github.com/vandreysouzat-code";
+  const authorLinkedIn = "https://www.linkedin.com/in/vandrey/";
+  // Share the public source repository; localhost only exists on the current computer.
+  const projectUrl = "https://github.com/vandreysouzat-code/cloud-security-monitor";
+  const shareText = "Conheça o Cloud Security Monitor, projeto gratuito para executar localmente, desenvolvido por Victor Andrey. Se divulgar, marque o autor.";
+  const fullMessage = `${shareText}\n\nRepositório: ${projectUrl}\nGitHub do autor: ${authorGithub}\nLinkedIn do autor: ${authorLinkedIn}`;
+
+  button.addEventListener("click", async function () {
+    const original = button.textContent;
+    button.disabled = true;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: projectTitle, text: shareText, url: projectUrl });
+        button.textContent = "Obrigado! ✓";
+      } else if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(fullMessage);
+        button.textContent = "Texto copiado ✓";
+      } else {
+        window.prompt("Copie esta mensagem para divulgar o projeto e marcar o autor:", fullMessage);
+        button.textContent = "Pronto para copiar";
+      }
+    } catch (error) {
+      if (error && error.name !== "AbortError") {
+        window.prompt("Copie esta mensagem para divulgar o projeto e marcar o autor:", fullMessage);
+      }
+    } finally {
+      window.setTimeout(function () {
+        button.textContent = original;
+        button.disabled = false;
+      }, 2200);
+    }
+  });
+})();
+</script>

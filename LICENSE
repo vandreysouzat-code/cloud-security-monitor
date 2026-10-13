@@ -1,0 +1,49 @@
+CSM COMMUNITY USE LICENSE v1.0
+
+Copyright (c) 2026 Victor Andrey
+Repository: https://github.com/vandreysouzat-code/cloud-security-monitor
+
+This license is a custom source-available license. It is not an OSI-approved
+Open Source license. Read these terms before using, modifying, or sharing the
+Cloud Security Monitor source code.
+
+1. PERMITTED USE
+The author grants you a free, non-exclusive, non-transferable permission to
+inspect, download, execute, and modify the software for personal, educational,
+research, and other non-commercial use, subject to the conditions below.
+
+2. ATTRIBUTION REQUIRED
+You must preserve this license and all existing copyright/attribution notices.
+When running a redistributed or modified version of the application, you must
+keep the visible "Desenvolvido por Victor Andrey" attribution and its author
+profile links in the user interface. You may not remove, obscure, or misrepresent
+that attribution in a copy distributed or made available to others.
+
+3. REDISTRIBUTION
+You may share the original source or non-commercial modifications only if you
+include this license, preserve attribution, clearly identify your modifications,
+and do not imply that the author endorses your version. You must not publish
+secrets, user data, credentials, or private configuration from your own instance.
+
+4. COMMERCIAL USE
+This license does not grant permission to sell the software, bundle it in a
+paid product, or provide it as a commercial hosted service. Contact the author
+for separate written permission for commercial use or broader licensing.
+
+5. THIRD-PARTY COMPONENTS
+Third-party libraries and components remain subject to their own licenses.
+This license does not replace or override those licenses.
+
+6. DISCLAIMER
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, AND NON-INFRINGEMENT. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE AUTHOR
+IS NOT LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM THE
+SOFTWARE OR ITS USE.
+
+7. NO TECHNICAL DRM PROMISE
+The attribution requirement is a condition of permission under this license;
+it is not a technical mechanism that makes the source code impossible to edit.
+
+If you need permission outside these terms, contact the author through the
+GitHub profile linked above.

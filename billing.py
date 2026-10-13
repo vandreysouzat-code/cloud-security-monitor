@@ -699,12 +699,15 @@ def validar_webhook():
         "",
     ).strip()
 
-    # Durante desenvolvimento, se o segredo
-    # ainda não estiver configurado, aceita.
-    #
-    # Em produção, configure MP_WEBHOOK_SECRET.
+    # Em desenvolvimento local, o segredo pode ficar ausente.
+    # Em produção, webhook sem assinatura configurada é rejeitado.
+    em_producao = (
+        os.environ.get("FLASK_ENV", "").lower() == "production"
+        or os.environ.get("RENDER", "").lower() == "true"
+        or os.environ.get("APP_ENV", "").lower() == "production"
+    )
     if not segredo:
-        return True
+        return not em_producao
 
     assinatura = request.headers.get(
         "x-signature",

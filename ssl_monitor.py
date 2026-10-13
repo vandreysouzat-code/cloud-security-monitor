@@ -1,8 +1,11 @@
 import socket
 import ssl
 from datetime import datetime
+from urllib.parse import urlsplit
 
 import requests
+
+from url_safety import exigir_ip_publico, validar_url_publica
 
 
 # ============================================================
@@ -44,20 +47,19 @@ def resolver_dominio(dominio):
         []
     )
 
-    for resposta_dns in respostas:
+    ips = [
+        item.get("data")
+        for item in respostas
+        if item.get("type") == 1 and item.get("data")
+    ]
 
-        if resposta_dns.get("type") == 1:
+    if not ips:
+        raise ValueError(
+            f"Não foi possível encontrar o endereço IP de {dominio}"
+        )
 
-            ip = resposta_dns.get(
-                "data"
-            )
-
-            if ip:
-                return ip
-
-    raise ValueError(
-        f"Não foi possível encontrar o endereço IP de {dominio}"
-    )
+    ips_publicos = [exigir_ip_publico(ip) for ip in ips]
+    return ips_publicos[0]
 
 
 # ============================================================
@@ -66,15 +68,12 @@ def resolver_dominio(dominio):
 
 def verificar_ssl(url):
 
-    dominio = (
-        url
-        .replace("https://", "")
-        .replace("http://", "")
-        .split("/")[0]
-        .split(":")[0]
-        .strip()
-        .lower()
-    )
+    url = validar_url_publica(url)
+    parsed = urlsplit(url)
+    dominio = (parsed.hostname or "").rstrip(".").lower()
+
+    if parsed.scheme != "https":
+        raise ValueError("A verificação SSL exige uma URL HTTPS.")
 
     if not dominio:
         raise ValueError(

@@ -1,5 +1,11 @@
 import os
 import secrets
+import time
+from collections import deque
+from threading import Lock
+from dotenv import load_dotenv
+
+load_dotenv()
 from datetime import timedelta
 from functools import wraps
 
@@ -37,7 +43,11 @@ from ssl_alert_manager import listar_alertas_ssl
 from metrics import obter_metricas
 
 from scheduler import iniciar_monitoramento_automatico
-from billing import registrar_rotas as registrar_rotas_billing
+from billing import (
+    registrar_rotas as registrar_rotas_billing,
+    usuario_pode_adicionar_site,
+)
+from url_safety import validar_url_publica
 
 
 # ============================================================
@@ -80,13 +90,19 @@ app = Flask(__name__)
 PRODUCAO = (
     os.environ.get("FLASK_ENV", "").lower() == "production"
     or os.environ.get("RENDER", "").lower() == "true"
+    or os.environ.get("APP_ENV", "").lower() == "production"
 )
 
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
-if PRODUCAO and not SECRET_KEY:
+if PRODUCAO and (
+    not SECRET_KEY
+    or len(SECRET_KEY) < 32
+    or SECRET_KEY.upper().startswith("SUBSTITUA")
+    or SECRET_KEY.lower() in {"change-me", "changeme", "secret", "development"}
+):
     raise RuntimeError(
-        "SECRET_KEY nÃƒÂ£o configurada. Defina a variÃƒÂ¡vel SECRET_KEY no ambiente."
+        "Defina SECRET_KEY como uma chave aleatória privada de pelo menos 32 caracteres em produção."
     )
 
 if not SECRET_KEY:
@@ -181,6 +197,64 @@ def validar_csrf():
         return False
 
 
+# Limites básicos por IP/processo para reduzir abuso em uma implantação de instância única.
+# Para múltiplas réplicas, adote rate limiting compartilhado no proxy/Redis.
+_LIMITES_SENSIVEIS = {
+    ("POST", "login"): (10, 60),
+    ("POST", "register"): (5, 3600),
+    ("POST", "api_criar_site"): (15, 60),
+    ("POST", "billing_checkout"): (8, 60),
+}
+_JANELAS_REQUISICOES = {}
+_LOCK_RATE_LIMIT = Lock()
+
+
+@app.before_request
+def limitar_requisicoes_sensiveis():
+    regra = _LIMITES_SENSIVEIS.get((request.method, request.endpoint))
+    if not regra:
+        return None
+
+    limite, janela = regra
+    agora = time.monotonic()
+    chave = (request.remote_addr or "unknown", request.endpoint)
+
+    with _LOCK_RATE_LIMIT:
+        fila = _JANELAS_REQUISICOES.setdefault(chave, deque())
+        while fila and agora - fila[0] >= janela:
+            fila.popleft()
+
+        if len(fila) >= limite:
+            aguardar = max(1, int(janela - (agora - fila[0])))
+            resposta = jsonify({
+                "sucesso": False,
+                "erro": "Muitas tentativas em pouco tempo. Aguarde e tente novamente.",
+            }) if request.path.startswith("/api/") or request.is_json else None
+            if resposta is None:
+                from flask import make_response
+                resposta = make_response(
+                    "Muitas tentativas em pouco tempo. Aguarde e tente novamente.",
+                    429,
+                )
+            else:
+                resposta.status_code = 429
+            resposta.headers["Retry-After"] = str(aguardar)
+            return resposta
+
+        fila.append(agora)
+
+        # Remove chaves inativas para limitar o crescimento da memória.
+        if len(_JANELAS_REQUISICOES) > 2000:
+            expiradas = [
+                k for k, q in _JANELAS_REQUISICOES.items()
+                if not q or agora - q[-1] >= 3600
+            ]
+            for k in expiradas:
+                _JANELAS_REQUISICOES.pop(k, None)
+
+    return None
+
+
 @app.before_request
 def proteger_contra_csrf():
 
@@ -267,7 +341,7 @@ def login_required(func):
                     "erro": "AutenticaÃƒÂ§ÃƒÂ£o necessÃƒÂ¡ria."
                 }), 401
 
-            return redirect("/login")
+            return redirect(url_for("login"))
 
         return func(*args, **kwargs)
 
@@ -330,7 +404,7 @@ def admin_required(func):
             print(f"[ADMIN_REQUIRED] {type(e).__name__}: {e}")
             return jsonify({
                 "sucesso": False,
-                "erro": f"ADMIN DEBUG: {type(e).__name__}: {e}"
+                "erro": "Não foi possível validar o acesso administrativo."
             }), 500
 
     return wrapper
@@ -778,13 +852,13 @@ def logout():
         return jsonify({
             "sucesso": True,
             "mensagem": "Logout realizado.",
-            "redirect": "/login"
+            "redirect": url_for("login")
         })
 
     session.clear()
 
     return redirect(
-        "/login"
+        url_for("login")
     )
 
 
@@ -798,7 +872,7 @@ def index():
     if usuario_logado():
         return redirect(url_for("dashboard"))
 
-    return redirect("/login")
+    return redirect(url_for("login"))
 
 
 # ============================================================
@@ -831,7 +905,7 @@ def api_me():
         "id": usuario["id"],
         "nome": usuario["nome"],
         "email": usuario["email"],
-        "role": usuario["role"] if "role" in usuario.keys() else "user",
+        "role": usuario.get("role", "user"),
         "ativo": usuario.get("ativo", 1),
     })
 
@@ -944,18 +1018,33 @@ def api_criar_site():
             "erro": "URL do site ÃƒÂ© obrigatÃƒÂ³ria."
         }), 400
 
-    if not (
-        url.startswith("http://")
-        or url.startswith("https://")
-    ):
-
+    try:
+        url = validar_url_publica(url)
+    except ValueError as erro_url:
         return jsonify({
             "sucesso": False,
-            "erro": "A URL deve comeÃƒÂ§ar com http:// ou https://."
+            "erro": str(erro_url),
         }), 400
 
     try:
+        pode_adicionar, total_sites, limite_sites, nome_plano = (
+            usuario_pode_adicionar_site(usuario["id"])
+        )
+    except Exception as erro_limite:
+        print(f"Erro ao verificar limite do plano: {type(erro_limite).__name__}")
+        return jsonify({
+            "sucesso": False,
+            "erro": "Não foi possível verificar o limite da sua conta. Tente novamente.",
+        }), 503
 
+    if not pode_adicionar:
+        return jsonify({
+            "sucesso": False,
+            "erro": f"Seu plano {nome_plano} permite até {limite_sites} site(s). Você já utiliza {total_sites}.",
+            "upgrade_url": url_for("planos"),
+        }), 403
+
+    try:
         site_id = criar_site(
             usuario_id=usuario["id"],
             nome=nome,
@@ -1022,7 +1111,7 @@ def api_obter_site(site_id):
 
     return jsonify({
         "sucesso": True,
-        "site": dict(site) if site is not None else None
+        "site": site
     })
 
 
@@ -1500,175 +1589,72 @@ def adicionar_headers_seguranca(response):
 # INICIALIZAÃƒâ€¡ÃƒÆ’O
 # ============================================================
 
-if __name__ == "__main__":
-
-    print("=" * 60)
-    print("CLOUD SECURITY MONITOR")
-    print("=" * 60)
-
-    print(
-        "Banco:",
-        "PostgreSQL"
-        if getattr(database, "USANDO_POSTGRES", False)
-        else "SQLite"
-    )
-
-    print(
-        "Ambiente:",
-        "PRODUÃƒâ€¡ÃƒÆ’O"
-        if PRODUCAO
-        else "DESENVOLVIMENTO"
-    )
-
-    print("=" * 60)
-
-    try:
-
-        iniciar_monitoramento_automatico()
-
-    except Exception as erro:
-
-        print(
-            f"Aviso: monitoramento automÃƒÂ¡tico nÃƒÂ£o foi iniciado: {erro}"
-        )
-
-    porta = int(
-        os.environ.get(
-            "PORT",
-            5000
-        )
-    )
-
-    app.run(
-        host="0.0.0.0",
-        port=porta,
-        debug=False
-    )
-
-
-
-
 @app.route("/admin/api/usuarios/<int:user_id>/role", methods=["POST"])
 @admin_required
 def admin_alterar_role(user_id):
-    try:
-        dados = request.get_json(silent=True) or {}
-        nova_role = str(dados.get("role", "")).strip().lower()
 
-        if nova_role not in ("admin", "user"):
-            return jsonify({
-                "sucesso": False,
-                "erro": "Role inválida. Use admin ou user."
-            }), 400
+    dados = request.get_json(silent=True) or {}
+    role = str(dados.get("role", "")).strip().lower()
 
-        usuario_atual = usuario_logado()
-
-        if not usuario_atual:
-            return jsonify({
-                "sucesso": False,
-                "erro": "Sessão administrativa inválida."
-            }), 401
-
-        # Impede o administrador de remover o próprio acesso.
-        if int(usuario_atual["id"]) == int(user_id):
-            return jsonify({
-                "sucesso": False,
-                "erro": "Você não pode alterar o próprio perfil administrativo."
-            }), 400
-
-        with conectar() as conn:
-            usuario = conn.execute(
-                "SELECT id, nome, email, role FROM users WHERE id = ?",
-                (user_id,)
-            ).fetchone()
-
-            if not usuario:
-                return jsonify({
-                    "sucesso": False,
-                    "erro": "Usuário não encontrado."
-                }), 404
-
-            conn.execute(
-                "UPDATE users SET role = ? WHERE id = ?",
-                (nova_role, user_id)
-            )
-
-            conn.commit()
-
-            confirmado = conn.execute(
-                "SELECT id, nome, email, role FROM users WHERE id = ?",
-                (user_id,)
-            ).fetchone()
-
-        return jsonify({
-            "sucesso": True,
-            "mensagem": "Perfil atualizado com sucesso.",
-            "usuario": {
-                "id": confirmado["id"],
-                "nome": confirmado["nome"],
-                "email": confirmado["email"],
-                "role": confirmado["role"]
-            }
-        }), 200
-
-    except Exception as e:
-        print("ERRO AO ALTERAR ROLE:", repr(e))
+    if role not in ("user", "admin"):
         return jsonify({
             "sucesso": False,
-            "erro": "Erro interno ao alterar o perfil.",
-            "detalhes": str(e)
-        }), 500
+            "erro": "Perfil invÃ¡lido."
+        }), 400
 
-@app.route("/admin/recuperar-victor", methods=["GET", "POST"])
-@admin_required
-def admin_recuperar_victor():
+    usuario_atual = usuario_logado()
 
-    # Garante que o token CSRF exista na sessÃ£o
-    obter_token_csrf()
+    # NÃ£o permite que o administrador retire a prÃ³pria funÃ§Ã£o.
+    if usuario_atual and int(usuario_atual["id"]) == user_id and role != "admin":
+        return jsonify({
+            "sucesso": False,
+            "erro": "O administrador atual nÃ£o pode remover a prÃ³pria funÃ§Ã£o."
+        }), 400
 
-    user_id = 2
+    with conectar() as conn:
 
-    if request.method == "POST":
+        usuario = conn.execute(
+            "SELECT id, nome, email, role FROM users WHERE id = ?",
+            (user_id,)
+        ).fetchone()
 
-        nova_senha = str(request.form.get("senha", "")).strip()
+        if not usuario:
+            return jsonify({
+                "sucesso": False,
+                "erro": "UsuÃ¡rio nÃ£o encontrado."
+            }), 404
 
-        if len(nova_senha) < 6:
-            return render_template(
-                "admin_recovery.html",
-                erro="A senha precisa ter pelo menos 6 caracteres."
-            )
-
-        with conectar() as conn:
-
-            usuario = conn.execute(
-                "SELECT id, nome, email FROM users WHERE id = ?",
-                (user_id,)
-            ).fetchone()
-
-            if not usuario:
-                return render_template(
-                    "admin_recovery.html",
-                    erro="UsuÃ¡rio Victor Andrey nÃ£o encontrado."
-                )
-
-            senha_hash = generate_password_hash(nova_senha)
-
-            conn.execute(
-                "UPDATE users SET senha_hash = ?, ativo = 1 WHERE id = ?",
-                (senha_hash, user_id)
-            )
-
-            conn.commit()
-
-        return render_template(
-            "admin_recovery.html",
-            sucesso=True,
-            usuario=usuario
+        conn.execute(
+            "UPDATE users SET role = ?, ativo = 1 WHERE id = ?",
+            (role, user_id)
         )
 
-    return render_template("admin_recovery.html")
+        conn.commit()
+
+    return jsonify({
+        "sucesso": True,
+        "mensagem": "Perfil atualizado com sucesso.",
+        "usuario": {
+            "id": usuario["id"],
+            "nome": usuario["nome"],
+            "email": usuario["email"],
+            "role": role
+        }
+    }), 200
 
 
+# Rotas de planos/assinaturas; a inicialização também garante as tabelas necessárias.
+registrar_rotas_billing(app, login_required)
 
 
-
+if __name__ == "__main__":
+    print("=" * 60)
+    print("CLOUD SECURITY MONITOR")
+    print("=" * 60)
+    print("Banco:", "PostgreSQL" if getattr(database, "USANDO_POSTGRES", False) else "SQLite")
+    print("Ambiente:", "PRODUÇÃO" if PRODUCAO else "DESENVOLVIMENTO")
+    print("=" * 60)
+    iniciar_monitoramento_automatico()
+    # Waitress é usado em launch.py para execução pública; este modo direto
+    # permanece útil para depuração local.
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "5000")), debug=False)

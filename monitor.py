@@ -5,6 +5,8 @@ from urllib.parse import urlparse
 
 import requests
 
+from url_safety import exigir_ip_publico, validar_url_publica
+
 
 # ============================================================
 # CLOUDFLARE DNS OVER HTTPS
@@ -45,18 +47,20 @@ def resolver_dominio(dominio, timeout=5):
         []
     )
 
-    for registro in respostas:
+    ips = [
+        registro.get("data")
+        for registro in respostas
+        if registro.get("type") == 1 and registro.get("data")
+    ]
 
-        if registro.get("type") == 1:
+    if not ips:
+        raise RuntimeError(
+            f"Nenhum endereço IPv4 encontrado para {dominio}"
+        )
 
-            ip = registro.get("data")
-
-            if ip:
-                return ip
-
-    raise RuntimeError(
-        f"Nenhum endereço IPv4 encontrado para {dominio}"
-    )
+    # Bloqueia respostas DNS que apontem para redes privadas/reservadas.
+    ips_publicos = [exigir_ip_publico(ip) for ip in ips]
+    return ips_publicos[0]
 
 
 # ============================================================
@@ -228,9 +232,8 @@ def verificar_url(url, timeout=5):
 
     try:
 
-        dados_url = urlparse(
-            url
-        )
+        url = validar_url_publica(url)
+        dados_url = urlparse(url)
 
         dominio = dados_url.hostname
 

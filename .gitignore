@@ -1,16 +1,30 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
 .venv/
 venv/
 .env
-monitor.db
-.vscode/
-logs/*.log
+.env.*
+!.env.example
+
+# Local databases and user data
+*.db
+*.sqlite
+*.sqlite3
+logs/
 backups/
-teste_alerta.py# Backups e arquivos temporários
-*_backup_*.py
-*_backup_*.db
+uploads/
+*_backup*.py
+*_backup*.db
 ver_colunas.py
 reset_senha.py
-templates/dashboard_backup_*.html
 teste_alerta.py
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Cópia local extraída durante a atualização
+/cloud-security-monitor/
