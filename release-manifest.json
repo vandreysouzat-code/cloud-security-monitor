@@ -67,7 +67,7 @@
     },
     {
       "path": "launch.py",
-      "sha256": "463da4ad33f27e7431dfac5e47bd1c68220957af19eaee685bfb9c741faa96ba"
+      "sha256": "3312b343b24457f234454b4c0b1424a551929098cb1c22683cdd014e0a010cc3"
     },
     {
       "path": "logger.py",

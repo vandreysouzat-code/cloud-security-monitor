@@ -1,8 +1,18 @@
 """Ponto de entrada para desenvolvimento e hospedagem de instância única."""
 import os
+import sys
 
 from dotenv import load_dotenv
 load_dotenv()
+
+# Evita que emojis no console interrompam o monitoramento no Windows.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(errors="backslashreplace")
+        except (OSError, ValueError):
+            pass
+
 
 from release_integrity import ReleaseIntegrityError, verificar_integridade_release  # noqa: E402
 
