@@ -111,7 +111,7 @@
     },
     {
       "path": "templates/_creator_brand.html",
-      "sha256": "4834c66fbd71fde54a3c5805080c29350742f1d880fe6154bec26feb9ee193af"
+      "sha256": "7bdea44c4857701cc069becdabcf24a3dcacc8cb1758ceb673c3720094c01b3b"
     },
     {
       "path": "templates/admin.html",
@@ -123,7 +123,7 @@
     },
     {
       "path": "templates/login.html",
-      "sha256": "e7fa78943e6518a59bd9a372353f3409e0e2c93adb6a3df736fa3a1148011d9c"
+      "sha256": "ce34b640aaac7db2479bd7c8d05205d942a630d4e339de465b62c36611e464f9"
     },
     {
       "path": "templates/planos.html",
